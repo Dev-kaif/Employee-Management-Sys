@@ -3,18 +3,19 @@ import { Task } from "../models/taskModel";
 import { Employee } from "../models/employeeModel";
 
 // POST /api/tasks/assign - Admin assigns task
+
 export const assignTask = async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== "admin") {
-      res.status(403).json({ message: "Only admins can assign tasks" });
+      res.status(403).json({ message: "Only admins can view all tasks" });
       return;
     }
 
-    const { title, description, assignedTo, dueDate } = req.body;
+    const { title, description, assignedTo, dueDate, scheduledFor } = req.body;
 
-    const employee = await Employee.findById(assignedTo);
+    const assignedEmployee = await Employee.findById(assignedTo);
 
-    if (!employee) {
+    if (!assignedEmployee) {
       res.status(404).json({ message: "Assigned employee not found" });
       return;
     }
@@ -23,17 +24,18 @@ export const assignTask = async (req: Request, res: Response) => {
       title,
       description,
       assignedTo,
-      assignedBy: req.user.userId,
+      assignedBy: req.user?.userId,
       dueDate,
+      scheduledFor,
+      isScheduled: !!scheduledFor,
+      status: scheduledFor ? "pending" : "assigned",
     });
 
-    res.status(201).json({ message: "Task assigned", task });
+    res.status(201).json(task);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err });
+    res.status(500).json({ message: "Error creating task", error: err });
   }
 };
-
-
 
 // GET /api/tasks - Admin gets all tasks
 export const getAllTasks = async (req: Request, res: Response) => {
@@ -53,15 +55,11 @@ export const getAllTasks = async (req: Request, res: Response) => {
   }
 };
 
-
-
 // GET /api/tasks/employee/:id - Admin gets tasks by employee
 export const getTasksByEmployee = async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== "admin") {
-      res
-        .status(403)
-        .json({ message: "Only admins can view tasks by employee" });
+      res.status(403).json({ message: "Only admins can view tasks by employee" });
       return;
     }
 
@@ -78,20 +76,20 @@ export const getTasksByEmployee = async (req: Request, res: Response) => {
   }
 };
 
-
-
 // GET /api/tasks/my - Employee gets their tasks
 export const getMyTasks = async (req: Request, res: Response) => {
   try {
-    const tasks = await Task.find({ assignedTo: req.user?.userId });
+
+    const tasks = await Task.find({
+      assignedTo: req.user?.userId,
+      status: "assigned",
+    });
 
     res.status(200).json(tasks);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err });
   }
 };
-
-
 
 // PUT /api/tasks/update/:id - Employee updates their task status
 export const updateTaskStatus = async (req: Request, res: Response) => {
@@ -100,8 +98,11 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     const taskId = req.params.id;
 
     const task = await Task.findById(taskId);
-    res.status(404).json({ message: "Task not found" });
-    if (!task) return;
+
+    if (!task) {
+      res.status(404).json({ message: "Task not found" });
+      return;
+    }
 
     // Only assigned employee can update
     if (task.assignedTo.toString() !== req.user?.userId.toString()) {

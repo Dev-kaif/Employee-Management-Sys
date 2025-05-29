@@ -5,7 +5,7 @@ import employeeRoutes from "./routes/employeeRoutes";
 import shiftRoutes from "./routes/shiftRoutes";
 import taskRoutes from "./routes/taskRoutes";
 import { Mongo_Db_URL } from "./config/config";
-
+import './sheduler/sheduler';
 
 const app = express();
 app.use(express.json());

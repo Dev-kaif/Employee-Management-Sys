@@ -10,15 +10,14 @@ import { authenticate } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
-// Protect all routes
 router.use(authenticate);
 
-// Admin Routes
+// Admin
 router.post("/assign", assignTask);
 router.get("/", getAllTasks);
 router.get("/employee/:id", getTasksByEmployee);
 
-// Employee Routes
+// Employee
 router.get("/my", getMyTasks);
 router.put("/update/:id", updateTaskStatus);
 
