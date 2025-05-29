@@ -1,18 +1,6 @@
 import { Request, Response } from "express";
 import { Employee } from "../models/employeeModel";
 
-interface IUserPayload {
-  userId: string;
-  role: "admin" | "employee";
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: IUserPayload;
-    }
-  }
-}
 
 const isAdmin = (req: Request) => req.user?.role === "admin";
 
