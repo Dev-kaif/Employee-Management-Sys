@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Employee } from "../models/employeeModel";
+import bcrypt from 'bcryptjs';
 
 
 const isAdmin = (req: Request) => req.user?.role === "admin";
@@ -39,13 +40,14 @@ export const getEmployeeById = async (req: Request, res: Response) => {
 };
 
 export const createEmployee = async (req: Request, res: Response) => {
+
   if (!isAdmin(req)) {
     res.status(403).json({ message: "Access denied, admin only" });
     return;
   }
 
   try {
-    const { name, email, position, department } = req.body;
+    const { username, email,password ,designation, department, role } = req.body;
 
     const existingEmployee = await Employee.findOne({ email });
     if (existingEmployee) {
@@ -53,11 +55,16 @@ export const createEmployee = async (req: Request, res: Response) => {
       return;
     }
 
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const newEmployee = new Employee({
-      name,
+      username,
       email,
-      position,
+      password:hashedPassword,
+      designation,
       department,
+      role
     });
 
     await newEmployee.save();
@@ -68,6 +75,8 @@ export const createEmployee = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
+    console.log(error);
+    
     res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -5,6 +5,7 @@ import { authenticate } from '../middlewares/authMiddleware';
 const router = express.Router();
 
 // All routes require authentication
+
 router.use(authenticate); 
 
 router.post('/', createEmployee);
