@@ -201,7 +201,7 @@ JWT_SECRET=super-secret-key
 ### 4. Run the Server
 
 ```bash
-npx ts-node-dev src/index.ts
+npm run dev
 ```
 
 ### Optional: Compile for Production
