@@ -42,7 +42,6 @@ employee-management-backend/
 │   ├── sheduler/             # Cron jobs to activate scheduled tasks
 │   │   └── sheduler.ts
 │   └── index.ts              # Server entry point
-├── .env                      # Your private environment variables
 ├── .env.example              # Sample env config
 ├── package.json              # Project metadata and dependencies
 ├── tsconfig.json             # TypeScript compiler config
@@ -67,12 +66,13 @@ JWT_SECRET=your-secret-key
 
 ```ts
 {
-  username: String,
-  email: String,
-  password: String,
-  designation: String,
-  department: String,
-  role: 'admin' | 'employee'
+  username: string;
+  email: string;
+  password: string;
+  company: string;
+  role: "admin" | "employee";
+  designation: string;
+  department: string;
 }
 ```
 
@@ -110,7 +110,7 @@ JWT_SECRET=your-secret-key
 
 ### Middleware: `authenticate`
 
-* Verifies `Authorization: Bearer <token>`
+* Verifies `authorization: Bearer <token>`
 * Decodes JWT payload and attaches `req.user = { userId, role }`
 * Rejects unauthorized or expired tokens with `401`
 
@@ -120,9 +120,10 @@ JWT_SECRET=your-secret-key
 
 ### 🔑 Auth Routes (`/api/auth`)
 
-| Method | Path   | Access | Description          |
-| ------ | ------ | ------ | -------------------- |
-| POST   | /login | Public | Employee/admin login |
+| Method | Path             | Access | Description          |
+| ------ | -----------------| ------ | ---------------------|
+| POST   | /api/auth/signup | Public | Admin Signup         |
+| POST   | /api/auth/login  | Public | Employee/admin login |
 
 ---
 
@@ -130,36 +131,36 @@ JWT_SECRET=your-secret-key
 
 > **Admin only** - Must be authenticated with admin role
 
-| Method | Path   | Description         |
-| ------ | ------ | ------------------- |
-| GET    | `/`    | Get all employees   |
-| GET    | `/:id` | Get employee by ID  |
-| POST   | `/`    | Create new employee |
-| PUT    | `/:id` | Update employee     |
-| DELETE | `/:id` | Delete employee     |
+| Method | Path                 | Description         |
+| ------ | ---------------------| ------------------- |
+| GET    | `/api/employees`     | Get all employees   |
+| GET    | `/api/employees/:id` | Get employee by ID  |
+| POST   | `/api/employees`     | Create new employee |
+| PUT    | `/api/employees/:id` | Update employee     |
+| DELETE | `/api/employees/:id` | Delete employee     |
 
 ---
 
 ### ⏱️ Shift Routes (`/api/shifts`)
 
-| Method | Path   | Access   | Description             |
-| ------ | ------ | -------- | ----------------------- |
-| POST   | /start | Employee | Start a new shift       |
-| POST   | /end   | Employee | End current shift       |
-| GET    | /my    | Employee | Get own shift info      |
-| GET    | /      | Admin    | Get all employee shifts |
+| Method | Path              | Access   | Description             |
+| ------ | ------------------| -------- | ------------------------|
+| POST   | /api/shifts/start | Employee | Start a new shift       |
+| POST   | /api/shifts/end   | Employee | End current shift       |
+| GET    | /api/shifts/my    | Employee | Get own shift info      |
+| GET    | /api/shifts/      | Admin    | Get all employee shifts |
 
 ---
 
 ### 📋 Task Routes (`/api/tasks`)
 
-| Method | Path           | Access   | Description                    |
-| ------ | -------------- | -------- | ------------------------------ |
-| POST   | /assign        | Admin    | Assign task to employee        |
-| GET    | /              | Admin    | Get all tasks                  |
-| GET    | /employee/\:id | Admin    | Get tasks by employee ID       |
-| GET    | /my            | Employee | Get own tasks                  |
-| PUT    | /update/\:id   | Employee | Update status of assigned task |
+| Method | Path                      | Access   | Description                    |
+| ------ | --------------------------| -------- | ------------------------------ |
+| POST   | /api/tasks/assign         | Admin    | Assign task to employee        |
+| GET    | /api/tasks/               | Admin    | Get all tasks                  |
+| GET    | /api/tasks/employee/:id   | Admin    | Get tasks by employee ID       |
+| GET    | /api/tasks/my             | Employee | Get own tasks                  |
+| PUT    | /api/tasks/update/:id     | Employee | Update status of assigned task |
 
 ---
 
