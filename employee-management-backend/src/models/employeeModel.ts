@@ -24,6 +24,11 @@ const employeeSchema = new mongoose.Schema(
     department: {
       type: String,
     },
+    company: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     role: {
       type: String,
       enum: ['admin', 'employee'],

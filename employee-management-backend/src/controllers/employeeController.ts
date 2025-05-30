@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { Employee } from "../models/employeeModel";
-import bcrypt from 'bcryptjs';
-
+import bcrypt from "bcryptjs";
 
 const isAdmin = (req: Request) => req.user?.role === "admin";
 
@@ -12,7 +11,8 @@ export const getAllEmployees = async (req: Request, res: Response) => {
   }
 
   try {
-    const employees = await Employee.find();
+    const admin = await Employee.findById(req.user?.userId);
+    const employees = await Employee.find({ company: admin?.company }); // ✅ Filter by company
     res.status(200).json(employees);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
@@ -40,31 +40,41 @@ export const getEmployeeById = async (req: Request, res: Response) => {
 };
 
 export const createEmployee = async (req: Request, res: Response) => {
-
   if (!isAdmin(req)) {
     res.status(403).json({ message: "Access denied, admin only" });
     return;
   }
 
   try {
-    const { username, email,password ,designation, department, role } = req.body;
+    const { username, email, password, designation, department, role } =
+      req.body;
 
+    // Ensure the employee doesn't already exist
     const existingEmployee = await Employee.findOne({ email });
     if (existingEmployee) {
       res.status(400).json({ message: "Employee with this email already exists" });
       return;
     }
 
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Get the admin who is creating this employee
+    const admin = await Employee.findById(req.user?.userId);
+    if (!admin || admin.role !== "admin") {
+      res.status(403).json({ message: "Only admins can create employees" });
+      return
+    }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new employee under the admin's company
     const newEmployee = new Employee({
       username,
       email,
-      password:hashedPassword,
+      password: hashedPassword,
       designation,
       department,
-      role
+      role,
+      company: admin.company,
     });
 
     await newEmployee.save();
@@ -73,10 +83,8 @@ export const createEmployee = async (req: Request, res: Response) => {
       message: "Employee created successfully",
       employee: newEmployee,
     });
-
   } catch (error) {
-    console.log(error);
-    
+    console.error("Create Employee Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -96,14 +104,14 @@ export const updateEmployee = async (req: Request, res: Response) => {
       }
     );
 
-
     if (!updatedEmployee) {
       res.status(404).json({ message: "Employee not found" });
       return;
     }
 
-    res.status(200).json({ message: "Employee updated", employee: updatedEmployee });
-    
+    res
+      .status(200)
+      .json({ message: "Employee updated", employee: updatedEmployee });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }

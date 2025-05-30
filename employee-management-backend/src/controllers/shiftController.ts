@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import { Shift } from "../models/shiftModel";
+import { Employee } from "../models/employeeModel";
 
 const canAccessShift = (req: Request, shiftUserId: string) => {
-  req.user?.role === "admin" || req.user?.userId === shiftUserId;
-  return;
+  return req.user?.role === "admin" || req.user?.userId === shiftUserId;
 };
 
 // POST /shifts/start - Start a new shift (employee only)
@@ -25,7 +25,7 @@ export const startShift = async (req: Request, res: Response) => {
       return;
     }
 
-    const newShift = Shift.create({
+    const newShift = await Shift.create({
       user: req.user.userId,
       startTime: new Date(),
       endTime: null,
@@ -40,13 +40,19 @@ export const startShift = async (req: Request, res: Response) => {
 
 // PUT /shifts/:id/end - End a shift (employee only)
 export const endShift = async (req: Request, res: Response) => {
+  const userId = req.params.id
   if (req.user?.role !== "employee") {
     res.status(403).json({ message: "Only employees can end shifts" });
     return;
   }
 
+  if (!canAccessShift(req, userId)) {
+    res.status(403).json({ message: "Access denied" });
+    return;
+  }
+
   try {
-    const shift = await Shift.findById(req.params.id);
+    const shift = await Shift.findById(userId);
 
     if (!shift) {
       res.status(404).json({ message: "Shift not found" });
@@ -69,13 +75,20 @@ export const endShift = async (req: Request, res: Response) => {
 
 // PUT /shifts/:id/worklogs - Add work logs to a shift (employee only)
 export const addWorkLogs = async (req: Request, res: Response) => {
+  const userId = req.params.id
+
   if (req.user?.role !== "employee") {
     res.status(403).json({ message: "Only employees can add work logs" });
     return;
   }
 
+  if (!canAccessShift(req, userId)) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+
   try {
-    const shift = await Shift.findById(req.params.id);
+    const shift = await Shift.findById(userId);
 
     if (!shift) {
       res.status(404).json({ message: "Shift not found" });
@@ -107,11 +120,16 @@ export const addWorkLogs = async (req: Request, res: Response) => {
 // GET /shifts/:id - Get shift details (employee or admin)
 export const getShiftById = async (req: Request, res: Response) => {
   try {
-    const shift = await Shift.findById(req.params.id);
+    const userId = req.params.id
+    const shift = await Shift.findById(userId);
 
     if (!shift) {
       res.status(404).json({ message: "Shift not found" });
       return;
+    }
+    if (!canAccessShift(req, userId)) {
+      res.status(403).json({ message: "Access denied" });
+      return 
     }
 
     res.status(200).json(shift);
@@ -121,14 +139,37 @@ export const getShiftById = async (req: Request, res: Response) => {
 };
 
 // GET /shifts - List shifts (employee gets own, admin gets all)
+
 export const getShifts = async (req: Request, res: Response) => {
+
   try {
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const requestingUser = await Employee.findById(req.user.userId);
+
+    if (!requestingUser) {
+      res.status(404).json({ message: "Admin not found" });
+      return;
+    }
+
     let shifts;
 
-    if (req.user?.role === "admin") {
-      shifts = await Shift.find();
-    } else if (req.user?.role === "employee") {
-      shifts = await Shift.find({ user: req.user.userId });
+    if (requestingUser.role === "admin") {
+
+      const usersInCompany = await Employee.find({
+        company: requestingUser.company,
+      }).select("_id");
+
+      const userIds = usersInCompany.map(user => user._id);
+
+      shifts = await Shift.find({ user: { $in: userIds } });
+
+    } else if (requestingUser.role === "employee") {
+      shifts = await Shift.find({ user: requestingUser._id });
+
     } else {
       res.status(403).json({ message: "Access denied" });
       return;
@@ -138,4 +179,6 @@ export const getShifts = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
-};
+};   
+
+

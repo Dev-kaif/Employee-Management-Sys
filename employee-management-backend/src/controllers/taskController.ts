@@ -7,7 +7,7 @@ import { Employee } from "../models/employeeModel";
 export const assignTask = async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== "admin") {
-      res.status(403).json({ message: "Only admins can view all tasks" });
+      res.status(403).json({ message: "Only admins can assign tasks" });
       return;
     }
 
@@ -20,11 +20,22 @@ export const assignTask = async (req: Request, res: Response) => {
       return;
     }
 
+    const admin = await Employee.findById(req.user.userId);
+
+    if (
+      !admin ||
+      admin.role !== "admin" ||
+      admin.company?.toString() !== assignedEmployee.company?.toString()
+    ) {
+      res.status(403).json({ message: "Cross-company assignment not allowed" });
+      return;
+    }
+
     const task = await Task.create({
       title,
       description,
       assignedTo,
-      assignedBy: req.user?.userId,
+      assignedBy: req.user.userId,
       dueDate,
       scheduledFor,
       isScheduled: !!scheduledFor,
@@ -45,9 +56,22 @@ export const getAllTasks = async (req: Request, res: Response) => {
       return;
     }
 
-    const tasks = await Task.find()
-      .populate("assignedTo", "name email")
-      .populate("assignedBy", "name email");
+    const admin = await Employee.findById(req.user.userId);
+
+    if (!admin) {
+      res.status(404).json({ message: "Admin not found" });
+      return;
+    }
+
+    const companyEmployees = await Employee.find({
+      company: admin.company,
+    }).select("_id");
+
+    const employeeIds = companyEmployees.map((emp) => emp._id);
+
+    const tasks = await Task.find({ assignedTo: { $in: employeeIds } })
+      .populate("assignedTo", "username email")
+      .populate("assignedBy", "username email");
 
     res.status(200).json(tasks);
   } catch (err) {
@@ -63,11 +87,17 @@ export const getTasksByEmployee = async (req: Request, res: Response) => {
       return;
     }
 
-    const { id } = req.params;
+    const employee = await Employee.findById(req.params.id);
+    const admin = await Employee.findById(req.user.userId);
 
-    const tasks = await Task.find({ assignedTo: id }).populate(
+    if ( !employee || !admin || employee.company?.toString() !== admin.company?.toString()) {
+      res.status(403).json({ message: "Access denied" });
+      return ;
+    }
+
+    const tasks = await Task.find({ assignedTo: req.params.id }).populate(
       "assignedTo",
-      "name email"
+      "username email"
     );
 
     res.status(200).json(tasks);
@@ -79,7 +109,6 @@ export const getTasksByEmployee = async (req: Request, res: Response) => {
 // GET /api/tasks/my - Employee gets their tasks
 export const getMyTasks = async (req: Request, res: Response) => {
   try {
-
     const tasks = await Task.find({
       assignedTo: req.user?.userId,
       status: "assigned",
