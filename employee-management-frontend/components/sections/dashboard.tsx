@@ -116,10 +116,6 @@ export default function Dashboard() {
                 </motion.div>
               ))}
             </div>
-
-            <Button icon={<ArrowRight size={18} />} iconPosition="right" className="mt-4">
-              Explore Dashboard
-            </Button>
           </motion.div>
         </div>
       </div>

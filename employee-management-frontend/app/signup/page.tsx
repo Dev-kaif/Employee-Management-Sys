@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import axios from "axios";
-import { motion } from "motion/react"; // Corrected import for framer-motion
+import { motion } from "motion/react"; 
 import Link from "next/link";
-import { Eye, EyeOff, Check } from "lucide-react";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import {
@@ -13,8 +12,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Import Select components
-import { Label } from "@/components/ui/label"; // Import Label for Select
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Backend_Url } from "@/config";
 
 interface FormData {
@@ -39,6 +38,32 @@ interface FormErrors {
   agreeToTerms?: string;
 }
 
+// Define variants for the staggering effect
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      delayChildren: 0.1, // Delay before children start animating
+      staggerChildren: 0.08, // Delay between each child's animation
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0, filter: "blur(4px)" }, // Start with blur
+  visible: {
+    y: 0,
+    opacity: 1,
+    filter: "blur(0px)", 
+    transition: {
+      type: "spring", 
+      damping: 20,
+      stiffness: 100,
+    },
+  },
+};
+
 export default function SignupPage() {
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -57,7 +82,6 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Define departments array
   const departments = [
     "Engineering",
     "Product",
@@ -149,11 +173,24 @@ export default function SignupPage() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
       >
-        <h1 className="text-3xl font-bold text-center mb-6">
-          Create your account
+        <h1 className="text-3xl font-bold text-center mb-2">
+          Create Admin account
         </h1>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Note about single admin per company */}
+        <p className="text-sm text-center text-text-secondary mb-6">
+          <span className="text-red-500 font-semibold">Important:</span> Only
+          one admin can be registered per company. This account will manage your
+          company's dashboard.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Apply variants to the container for staggering */}
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div variants={itemVariants}>
               <Input
                 label="Full Name"
                 name="fullName"
@@ -161,6 +198,8 @@ export default function SignupPage() {
                 onChange={handleChange}
                 error={errors.fullName}
               />
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <Input
                 label="Email"
                 name="email"
@@ -169,6 +208,8 @@ export default function SignupPage() {
                 onChange={handleChange}
                 error={errors.email}
               />
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <Input
                 label="Password"
                 name="password"
@@ -177,7 +218,8 @@ export default function SignupPage() {
                 onChange={handleChange}
                 error={errors.password}
               />
-
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <Input
                 label="Confirm Password"
                 name="confirmPassword"
@@ -186,6 +228,8 @@ export default function SignupPage() {
                 onChange={handleChange}
                 error={errors.confirmPassword}
               />
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <Input
                 label="Designation"
                 name="designation"
@@ -193,31 +237,32 @@ export default function SignupPage() {
                 onChange={handleChange}
                 error={errors.designation}
               />
-              <div>
-                <Label htmlFor="department">Department</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) =>
-                    handleSelectChange("department", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.department && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.department}
-                  </p>
-                )}
-              </div>
+            </motion.div>
+            {/* Wrap the Select div as a motion.div item */}
+            <motion.div variants={itemVariants}>
+              <Label htmlFor="department">Department</Label>
+              <Select
+                value={formData.department}
+                onValueChange={(value) =>
+                  handleSelectChange("department", value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.department && (
+                <p className="text-red-500 text-sm mt-1">{errors.department}</p>
+              )}
+            </motion.div>
+            <motion.div variants={itemVariants}>
               <Input
                 label="Company"
                 name="company"
@@ -225,34 +270,38 @@ export default function SignupPage() {
                 onChange={handleChange}
                 error={errors.company}
               />
-            </div>
+            </motion.div>
+          </motion.div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                name="agreeToTerms"
-                checked={formData.agreeToTerms}
-                onChange={handleChange}
-                className="h-4 w-4 text-primary rounded focus:ring-primary-dark"
-              />
-              <label htmlFor="agreeToTerms" className="text-sm">
-                I agree to the terms and conditions
-              </label>
-            </div>
-            {errors.agreeToTerms && (
-              <p className="text-red-500 text-sm">{errors.agreeToTerms}</p>
-            )}
+          {/* These also need to be wrapped as motion.div items */}
+          <motion.div variants={itemVariants} className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="agreeToTerms"
+              checked={formData.agreeToTerms}
+              onChange={handleChange}
+              className="h-4 w-4 text-primary rounded focus:ring-primary-dark"
+            />
+            <label htmlFor="agreeToTerms" className="text-sm">
+              I agree to the terms and conditions
+            </label>
+          </motion.div>
+          {errors.agreeToTerms && (
+            <motion.p variants={itemVariants} className="text-red-500 text-sm">{errors.agreeToTerms}</motion.p>
+          )}
 
+          <motion.div variants={itemVariants}>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Creating..." : "Sign Up"}
             </Button>
-            <p className="text-sm text-center mt-4">
-              Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:underline">
-                Log in
-              </Link>
-            </p>
-          </form>
+          </motion.div>
+          <motion.p variants={itemVariants} className="text-sm text-center mt-4">
+            Already have an account?{" "}
+            <Link href="/login" className="text-blue-600 hover:underline">
+              Log in
+            </Link>
+          </motion.p>
+        </form>
       </motion.div>
     </main>
   );

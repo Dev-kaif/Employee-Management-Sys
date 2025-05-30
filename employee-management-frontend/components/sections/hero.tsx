@@ -4,9 +4,11 @@ import { useRef } from "react"
 import { motion, useScroll, useTransform } from "motion/react"
 import Button from "@/components/ui/button"
 import { ArrowRight, CheckCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function Hero() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter(); 
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -83,7 +85,7 @@ export default function Hero() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="flex flex-wrap gap-4"
             >
-              <Button size="lg" icon={<ArrowRight size={18} />} iconPosition="right">
+              <Button onClick={() => router.push('/signup')} size="lg" icon={<ArrowRight size={18} />} iconPosition="right">
                 Get Started
               </Button>
               <Button size="lg" variant="outline">

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Trash2, Eye, Filter, Users } from 'lucide-react';
+import { Plus, Search, Trash2, Eye, Filter, Users, AlertCircle } from 'lucide-react'; // Added AlertCircle icon
 import axios from '@/lib/axios';
-import Button  from '@/components/ui/button';
-import  Input  from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import Button from '@/components/ui/button';
+import Input from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'; // Added DialogFooter, DialogDescription
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/hooks/use-toast';
@@ -22,7 +22,7 @@ interface Employee {
   role: 'admin' | 'employee';
   createdAt: string;
   updatedAt: string;
-  // status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive';
   avatar?: string;
 }
 
@@ -34,6 +34,8 @@ const EmployeesPage = () => {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // New state for delete modal
+  const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null); // New state to store employee to delete
 
   const [newEmployee, setNewEmployee] = useState({
     username: '',
@@ -45,12 +47,13 @@ const EmployeesPage = () => {
 
   const { toast } = useToast();
 
+  const departments = ['Engineering', 'Product', 'Design', 'Marketing', 'Sales', 'HR'];
+
   const fetchEmployees = async () => {
     try {
       setLoading(true);
       const response = await axios.get<Employee[]>(`${Backend_Url}/api/employees`);
-      // For status, you might need a custom logic or add it to your backend schema
-      setEmployees(response.data.map(emp => ({ ...emp, status: 'active' }))); // Default to active for now
+      setEmployees(response.data.map(emp => ({ ...emp, status: emp.status || 'active' })));
     } catch (error: any) {
       toast({
         title: 'Error fetching employees',
@@ -68,26 +71,40 @@ const EmployeesPage = () => {
   }, []);
 
   const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.username.includes(searchTerm.toLowerCase()) ||
-                         employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (employee.designation && employee.designation.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
-    // const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
+    const employeeUsername = employee.username || '';
+    const employeeEmail = employee.email || '';
+    const employeeDesignation = employee.designation || '';
+    const employeeDepartment = employee.department || '';
+    const employeeStatus = employee.status || '';
+
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+    const matchesSearch = 
+      employeeUsername.toLowerCase().includes(lowerCaseSearchTerm) ||
+      employeeEmail.toLowerCase().includes(lowerCaseSearchTerm) ||
+      employeeDesignation.toLowerCase().includes(lowerCaseSearchTerm);
     
-    // return matchesSearch && matchesDepartment && matchesStatus;
-    return matchesSearch && matchesDepartment;
+    const matchesDepartment = departmentFilter === 'all' || 
+                              employeeDepartment === departmentFilter;
+    
+    const matchesStatus = statusFilter === 'all' || 
+                          employeeStatus === statusFilter;
+    
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   const handleCreateEmployee = async () => {
     try {
-      const response = await axios.post<Employee>(`${Backend_Url}/api/employees`, newEmployee);
-      setEmployees(prev => [{ ...response.data, status: 'active' }, ...prev]); // Default status on creation
+      await axios.post<Employee>(`${Backend_Url}/api/employees`, newEmployee);
+      
+      fetchEmployees(); 
+
       setNewEmployee({ username: '', email: '', password: '', designation: '', department: '' });
       setIsCreateModalOpen(false);
       
       toast({
         title: 'Employee created successfully',
-        description: `${response.data.username} has been added to the team.`,
+        description: `${newEmployee.username} has been added to the team.`,
       });
     } catch (error: any) {
       toast({
@@ -98,16 +115,25 @@ const EmployeesPage = () => {
     }
   };
 
-  const handleDeleteEmployee = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+  // Function to open the delete confirmation modal
+  const handleDeleteEmployee = (id: string, name: string) => {
+    setEmployeeToDelete({ id, name });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Function to perform the actual deletion after confirmation
+  const confirmDelete = async () => {
+    if (!employeeToDelete) return; // Should not happen if modal is open
 
     try {
-      await axios.delete(`${Backend_Url}/api/employees/${id}`);
-      setEmployees(employees.filter(emp => emp._id !== id));
+      await axios.delete(`${Backend_Url}/api/employees/${employeeToDelete.id}`);
+      setEmployees(employees.filter(emp => emp._id !== employeeToDelete.id));
+      setIsDeleteModalOpen(false); // Close the modal
+      setEmployeeToDelete(null); // Clear employee to delete
       
       toast({
         title: 'Employee deleted',
-        description: `${name} has been removed from the team.`,
+        description: `${employeeToDelete.name} has been removed from the team.`,
       });
     } catch (error: any) {
       toast({
@@ -117,8 +143,6 @@ const EmployeesPage = () => {
       });
     }
   };
-
-  const departments = ['Engineering', 'Product', 'Design', 'Marketing', 'Sales', 'HR'];
 
   if (loading) {
     return (
@@ -130,7 +154,6 @@ const EmployeesPage = () => {
     );
   }
 
-
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-6">
@@ -139,6 +162,7 @@ const EmployeesPage = () => {
           <p className="text-text-secondary mt-1">Manage your team members</p>
         </div>
         
+        {/* Create Employee Modal */}
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary-hover flex items-center gap-2">
@@ -191,7 +215,7 @@ const EmployeesPage = () => {
               </div>
               <div>
                 <Label htmlFor="department">Department</Label>
-                <Select onValueChange={(value) => setNewEmployee({...newEmployee, department: value})}>
+                <Select onValueChange={(value) => setNewEmployee({...newEmployee, department: value})} value={newEmployee.department}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
@@ -208,7 +232,7 @@ const EmployeesPage = () => {
                 </Button>
                 <Button 
                   onClick={handleCreateEmployee}
-                  disabled={!newEmployee.username || !newEmployee.email || !newEmployee.password}
+                  disabled={!newEmployee.username || !newEmployee.email || !newEmployee.password || !newEmployee.department}
                   className="bg-primary hover:bg-primary-hover"
                 >
                   Create Employee
@@ -272,7 +296,7 @@ const EmployeesPage = () => {
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold">
-                    {employee.username.split(' ').map(n => n[0]).join('')}
+                    {(employee.username || '').split(' ').map(n => n[0]).join('')}
                   </span>
                 </div>
                 <div>
@@ -280,14 +304,6 @@ const EmployeesPage = () => {
                   <p className="text-sm text-text-secondary">{employee.designation}</p>
                 </div>
               </div>
-              {/* later make active inactive based on shift */}
-              {/* <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                employee.status === 'active' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {employee.status}
-              </span> */}
             </div>
 
             <div className="space-y-2 mb-4">
@@ -309,7 +325,7 @@ const EmployeesPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleDeleteEmployee(employee._id, employee.username)}
+                onClick={() => handleDeleteEmployee(employee._id, employee.username)} // Calls the new handler
                 className="text-error border-error hover:bg-error hover:text-white"
               >
                 <Trash2 size={14} />
@@ -326,6 +342,31 @@ const EmployeesPage = () => {
           <p className="text-text-secondary">Try adjusting your search or filters</p>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="bg-surface sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-error">
+              <AlertCircle size={20} /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="mt-2">
+              Are you sure you want to delete **{employeeToDelete?.name}**? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={confirmDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
