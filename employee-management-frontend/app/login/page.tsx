@@ -1,96 +1,45 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { motion } from "motion/react"
-import Link from "next/link"
-import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
-import Button from "@/components/ui/button"
-import Input from "@/components/ui/input"
-
-interface FormData {
-  email: string
-  password: string
-  rememberMe: boolean
-}
-
-interface FormErrors {
-  email?: string
-  password?: string
-}
+import { useState } from "react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import axios from "axios";
+import { Backend_Url } from "@/config";
 
 export default function LoginPage() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState<FormData>({
-    email: "",
-    password: "",
-    rememberMe: false,
-  })
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsSubmitting(true);
 
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [showPassword, setShowPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [loginError, setLoginError] = useState<string | null>(null)
+    try {
+      const res = await axios.post(`${Backend_Url}/api/auth/login`, {
+        email,
+        password
+      });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    })
+      localStorage.setItem("token", res.data.token);
+      alert("Login successful");
 
-    // Clear error when user starts typing
-    if (errors[name as keyof FormErrors]) {
-      setErrors({
-        ...errors,
-        [name]: undefined,
-      })
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Clear login error when user makes changes
-    if (loginError) {
-      setLoginError(null)
-    }
-  }
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid"
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (validateForm()) {
-      setIsSubmitting(true)
-
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false)
-
-        // For demo purposes, show an error if email contains "error"
-        if (formData.email.includes("error")) {
-          setLoginError("Invalid email or password. Please try again.")
-        } else {
-          // Successful login would redirect to dashboard
-          window.location.href = "/"
-        }
-      }, 1500)
-    }
-  }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -100,7 +49,7 @@ export default function LoginPage() {
         staggerChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -111,13 +60,20 @@ export default function LoginPage() {
         duration: 0.5,
       },
     },
-  }
+  };
 
   return (
     <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
       <div className="container mx-auto px-4 py-8">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-          <Link href="/" className="inline-flex items-center text-[#374151] hover:text-[#2563EB] transition-colors">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Link
+            href="/"
+            className="inline-flex items-center text-[#374151] hover:text-[#2563EB] transition-colors"
+          >
             <ArrowLeft size={16} className="mr-2" />
             Back to home
           </Link>
@@ -134,8 +90,10 @@ export default function LoginPage() {
           >
             <div className="p-8">
               <motion.div variants={itemVariants} className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-[#111827]">Welcome back</h1>
-                <p className="text-[#374151] mt-2">Log in to your EmpManage account</p>
+                <h1 className="text-2xl font-bold text-[#111827]">
+                  Welcome back
+                </h1>
+                <p className="text-[#374151] mt-2">Log in to your account</p>
               </motion.div>
 
               {loginError && (
@@ -156,9 +114,8 @@ export default function LoginPage() {
                       name="email"
                       type="email"
                       placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      error={errors.email}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       fullWidth
                     />
                   </motion.div>
@@ -170,9 +127,8 @@ export default function LoginPage() {
                         name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        error={errors.password}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         fullWidth
                       />
                       <button
@@ -180,29 +136,12 @@ export default function LoginPage() {
                         className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#374151] transition-colors"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
                       </button>
-                    </div>
-                  </motion.div>
-
-                  <motion.div variants={itemVariants} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <input
-                        id="rememberMe"
-                        name="rememberMe"
-                        type="checkbox"
-                        checked={formData.rememberMe}
-                        onChange={handleChange}
-                        className="w-4 h-4 rounded border-[#E5E7EB] text-[#2563EB] focus:ring-[#2563EB] focus:ring-offset-0"
-                      />
-                      <label htmlFor="rememberMe" className="ml-2 text-sm text-[#374151]">
-                        Remember me
-                      </label>
-                    </div>
-                    <div>
-                      <Link href="#" className="text-sm text-[#2563EB] hover:underline">
-                        Forgot password?
-                      </Link>
                     </div>
                   </motion.div>
 
@@ -211,7 +150,9 @@ export default function LoginPage() {
                       type="submit"
                       fullWidth
                       disabled={isSubmitting}
-                      className={isSubmitting ? "opacity-80 cursor-not-allowed" : ""}
+                      className={
+                        isSubmitting ? "opacity-80 cursor-not-allowed" : ""
+                      }
                     >
                       {isSubmitting ? (
                         <span className="flex items-center justify-center">
@@ -229,30 +170,21 @@ export default function LoginPage() {
               <motion.div variants={itemVariants} className="mt-6 text-center">
                 <p className="text-[#374151]">
                   Don't have an account?{" "}
-                  <Link href="/signup" className="text-[#2563EB] hover:underline font-medium">
+                  <Link
+                    href="/signup"
+                    className="text-[#2563EB] hover:underline font-medium"
+                  >
                     Sign up
                   </Link>
                 </p>
               </motion.div>
-
-              <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-[#E5E7EB] text-center">
-                <p className="text-sm text-[#9CA3AF] mb-4">Or continue with</p>
-                <div className="flex space-x-4 justify-center">
-                  {["Google", "Microsoft", "Apple"].map((provider) => (
-                    <button
-                      key={provider}
-                      type="button"
-                      className="flex-1 py-2 px-4 border border-[#E5E7EB] rounded-md text-[#374151] hover:bg-[#F9FAFB] transition-colors text-sm font-medium"
-                    >
-                      {provider}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
             </div>
           </motion.div>
 
-          <motion.div variants={itemVariants} className="mt-8 text-center text-sm text-[#9CA3AF]">
+          <motion.div
+            variants={itemVariants}
+            className="mt-8 text-center text-sm text-[#9CA3AF]"
+          >
             By logging in, you agree to our{" "}
             <a href="#" className="text-[#2563EB] hover:underline">
               Terms of Service
@@ -265,5 +197,5 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }

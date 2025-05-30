@@ -1,19 +1,22 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
+import axios from "axios"
 import { motion } from "motion/react"
 import Link from "next/link"
-import { ArrowLeft, Check, Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Check } from "lucide-react"
 import Button from "@/components/ui/button"
 import Input from "@/components/ui/input"
+import { Backend_Url } from "@/config"
 
 interface FormData {
   fullName: string
   email: string
   password: string
   confirmPassword: string
+  designation: string
+  department: string
+  company: string
   agreeToTerms: boolean
 }
 
@@ -22,283 +25,186 @@ interface FormErrors {
   email?: string
   password?: string
   confirmPassword?: string
+  designation?: string
+  department?: string
+  company?: string
   agreeToTerms?: string
 }
 
 export default function SignupPage() {
-  
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
+    designation: "",
+    department: "",
+    company: "",
     agreeToTerms: false,
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    })
-
-    // Clear error when user starts typing
+    }))
     if (errors[name as keyof FormErrors]) {
-      setErrors({
-        ...errors,
-        [name]: undefined,
-      })
+      setErrors(prev => ({ ...prev, [name]: undefined }))
     }
   }
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required"
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid"
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required"
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters"
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password"
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match"
-    }
-
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = "You must agree to the terms and conditions"
-    }
+    if (!formData.fullName.trim()) newErrors.fullName = "Full name is required"
+    if (!formData.email.trim()) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email"
+    if (!formData.password) newErrors.password = "Password is required"
+    else if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters"
+    if (!formData.confirmPassword) newErrors.confirmPassword = "Please confirm password"
+    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match"
+    if (!formData.designation.trim()) newErrors.designation = "Designation is required"
+    if (!formData.department.trim()) newErrors.department = "Department is required"
+    if (!formData.company.trim()) newErrors.company = "Company name is required"
+    if (!formData.agreeToTerms) newErrors.agreeToTerms = "Please accept the terms and conditions"
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
 
-    if (validateForm()) {
-      setIsSubmitting(true)
+    setIsSubmitting(true)
 
-      // Simulate API call
-      setTimeout(() => {
-        setIsSubmitting(false)
-        setIsSubmitted(true)
+    try {
+      const res = await axios.post(`${Backend_Url}/api/auth/signup`, {
+        username: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        designation: formData.designation,
+        department: formData.department,
+        company: formData.company,
+      })
+      setIsSubmitted(true);
 
-        // Reset form after successful submission
-        setTimeout(() => {
-          setFormData({
-            fullName: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-            agreeToTerms: false,
-          })
-          setIsSubmitted(false)
-        }, 3000)
-      }, 1500)
+      localStorage.setItem("token", res.data.token);
+      alert("SignUp Sucessfull successful");
+      window.location.href = "/dashboard";
+
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Signup failed")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-      },
-    },
-  }
-
   return (
-    <main className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <div className="container mx-auto px-4 py-8">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-          <Link href="/" className="inline-flex items-center text-[#374151] hover:text-[#2563EB] transition-colors">
-            <ArrowLeft size={16} className="mr-2" />
-            Back to home
-          </Link>
-        </motion.div>
-      </div>
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-8 border border-gray-200"
+      >
+        <h1 className="text-3xl font-bold text-center mb-6">Create your account</h1>
 
-      <div className="flex-grow flex items-center justify-center px-4 py-12">
-        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="w-full max-w-md">
-          <div className="bg-white rounded-xl shadow-lg border border-[#E5E7EB] overflow-hidden">
-            <div className="p-8">
-              <motion.div variants={itemVariants} className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-[#111827]">Create your account</h1>
-                <p className="text-[#374151] mt-2">Join thousands of companies using EmpManage</p>
-              </motion.div>
-
-              {isSubmitted ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-8"
-                >
-                  <div className="w-16 h-16 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Check size={32} className="text-[#10B981]" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-[#111827] mb-2">Account created!</h3>
-                  <p className="text-[#374151]">Your account has been successfully created. You can now log in.</p>
-                  <Button className="mt-6" onClick={() => (window.location.href = "/login")}>
-                    Continue to Login
-                  </Button>
-                </motion.div>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-6">
-                    <motion.div variants={itemVariants}>
-                      <Input
-                        label="Full Name"
-                        name="fullName"
-                        placeholder="Enter your full name"
-                        value={formData.fullName}
-                        onChange={handleChange}
-                        error={errors.fullName}
-                        fullWidth
-                      />
-                    </motion.div>
-
-                    <motion.div variants={itemVariants}>
-                      <Input
-                        label="Email Address"
-                        name="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        error={errors.email}
-                        fullWidth
-                      />
-                    </motion.div>
-
-                    <motion.div variants={itemVariants}>
-                      <div className="relative">
-                        <Input
-                          label="Password"
-                          name="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Create a password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          error={errors.password}
-                          fullWidth
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#374151] transition-colors"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                      <p className="text-xs text-[#9CA3AF] mt-1">Password must be at least 8 characters</p>
-                    </motion.div>
-
-                    <motion.div variants={itemVariants}>
-                      <div className="relative">
-                        <Input
-                          label="Confirm Password"
-                          name="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirm your password"
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                          error={errors.confirmPassword}
-                          fullWidth
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#374151] transition-colors"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </motion.div>
-
-                    <motion.div variants={itemVariants}>
-                      <div className="flex items-start">
-                        <div className="flex items-center h-5">
-                          <input
-                            id="agreeToTerms"
-                            name="agreeToTerms"
-                            type="checkbox"
-                            checked={formData.agreeToTerms}
-                            onChange={handleChange}
-                            className="w-4 h-4 rounded border-[#E5E7EB] text-[#2563EB] focus:ring-[#2563EB] focus:ring-offset-0"
-                          />
-                        </div>
-                        <div className="ml-3">
-                          <label htmlFor="agreeToTerms" className="text-sm text-[#374151]">
-                            I agree to the{" "}
-                            <a href="#" className="text-[#2563EB] hover:underline">
-                              Terms of Service
-                            </a>{" "}
-                            and{" "}
-                            <a href="#" className="text-[#2563EB] hover:underline">
-                              Privacy Policy
-                            </a>
-                          </label>
-                          {errors.agreeToTerms && <p className="text-sm text-[#EF4444] mt-1">{errors.agreeToTerms}</p>}
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <motion.div variants={itemVariants}>
-                      <Button
-                        type="submit"
-                        fullWidth
-                        disabled={isSubmitting}
-                        className={isSubmitting ? "opacity-80 cursor-not-allowed" : ""}
-                      >
-                        {isSubmitting ? "Creating Account..." : "Create Account"}
-                      </Button>
-                    </motion.div>
-                  </div>
-                </form>
-              )}
-
-              <motion.div variants={itemVariants} className="mt-6 text-center">
-                <p className="text-[#374151]">
-                  Already have an account?{" "}
-                  <Link href="/login" className="text-[#2563EB] hover:underline font-medium">
-                    Log in
-                  </Link>
-                </p>
-              </motion.div>
-            </div>
+        {isSubmitted ? (
+          <div className="text-center py-10">
+            <Check className="mx-auto text-green-500 mb-3" size={40} />
+            <p className="text-lg font-semibold text-green-700">Account created successfully!</p>
+            <Button className="mt-5" onClick={() => (window.location.href = "/login")}>
+              Go to Login
+            </Button>
           </div>
-        </motion.div>
-      </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Full Name"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                error={errors.fullName}
+              />
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+              />
+              <Input
+                label="Password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+ 
+              />
+              <Input
+                label="Confirm Password"
+                name="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={errors.confirmPassword}
+              />
+              <Input
+                label="Designation"
+                name="designation"
+                value={formData.designation}
+                onChange={handleChange}
+                error={errors.designation}
+              />
+              <Input
+                label="Department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                error={errors.department}
+              />
+              <Input
+                label="Company"
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                error={errors.company}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                name="agreeToTerms"
+                checked={formData.agreeToTerms}
+                onChange={handleChange}
+              />
+              <label className="text-sm">I agree to the terms and conditions</label>
+            </div>
+            {errors.agreeToTerms && <p className="text-red-500 text-sm">{errors.agreeToTerms}</p>}
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Creating..." : "Sign Up"}
+            </Button>
+            <p className="text-sm text-center mt-4">
+              Already have an account?{" "}
+              <Link href="/login" className="text-blue-600 hover:underline">
+                Log in
+              </Link>
+            </p>
+          </form>
+        )}
+      </motion.div>
     </main>
   )
 }
