@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import { Menu, X } from "lucide-react"
 import Button from "@/components/ui/button"
@@ -9,6 +10,7 @@ import Logo from "@/components/ui/logo"
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +27,9 @@ export default function Header() {
     { name: "Pricing", href: "#pricing" },
     { name: "Testimonials", href: "#testimonials" },
   ]
+
+  const handleLogin = () => router.push("/login")
+  const handleSignup = () => router.push("/signup")
 
   return (
     <>
@@ -53,10 +58,12 @@ export default function Header() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleLogin}>
               Log in
             </Button>
-            <Button size="sm">Sign up</Button>
+            <Button size="sm" onClick={handleSignup}>
+              Sign up
+            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -98,10 +105,12 @@ export default function Header() {
               </nav>
 
               <div className="mt-auto flex flex-col space-y-4 pt-6">
-                <Button variant="outline" fullWidth>
+                <Button variant="outline" fullWidth onClick={handleLogin}>
                   Log in
                 </Button>
-                <Button fullWidth>Sign up</Button>
+                <Button fullWidth onClick={handleSignup}>
+                  Sign up
+                </Button>
               </div>
             </div>
           </motion.div>
