@@ -12,12 +12,25 @@ export const getAllEmployees = async (req: Request, res: Response) => {
 
   try {
     const admin = await Employee.findById(req.user?.userId);
-    const employees = await Employee.find({ company: admin?.company }); 
+
+    // If admin is not found or company is missing, handle error
+    if (!admin || !admin.company) {
+      res.status(404).json({ message: "Admin or admin's company not found" });
+      return;
+    }
+
+    // Find all employees in the same company, excluding the current admin's ID
+    const employees = await Employee.find({
+      company: admin.company,
+      _id: { $ne: req.user?.userId } // Exclude the current user's ID
+    });
+
     res.status(200).json(employees);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 export const getEmployeeById = async (req: Request, res: Response) => {
   if (!isAdmin(req)) {
@@ -46,7 +59,7 @@ export const createEmployee = async (req: Request, res: Response) => {
   }
 
   try {
-    const { username, email, password, designation, department, role } =
+    const { username, email, password, designation, department } =
       req.body;
 
     // Ensure the employee doesn't already exist
@@ -73,7 +86,7 @@ export const createEmployee = async (req: Request, res: Response) => {
       password: hashedPassword,
       designation,
       department,
-      role,
+      role:"employee",
       company: admin.company,
     });
 
