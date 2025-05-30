@@ -5,15 +5,18 @@ import employeeRoutes from "./routes/employeeRoutes";
 import shiftRoutes from "./routes/shiftRoutes";
 import taskRoutes from "./routes/taskRoutes";
 import { Mongo_Db_URL } from "./config/config";
-import './sheduler/sheduler';
+import "./sheduler/sheduler";
+import cors from "cors";
 
 const app = express();
+app.use(cors({ origin: "*" }));
+
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/shifts", shiftRoutes);
-app.use('/api/tasks', taskRoutes);
+app.use("/api/tasks", taskRoutes);
 
 const PORT = process.env.PORT || 5000;
 
