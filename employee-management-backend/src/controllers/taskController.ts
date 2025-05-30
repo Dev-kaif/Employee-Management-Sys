@@ -42,7 +42,7 @@ export const assignTask = async (req: Request, res: Response) => {
       status: scheduledFor ? "pending" : "assigned",
     });
 
-    res.status(201).json(task);
+    res.status(201).json({message:"task Created Sucessfully", task});
   } catch (err) {
     res.status(500).json({ message: "Error creating task", error: err });
   }
@@ -135,9 +135,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
     // Only assigned employee can update
     if (task.assignedTo.toString() !== req.user?.userId.toString()) {
-      res
-        .status(403)
-        .json({ message: "You are not authorized to update this task" });
+      res.status(403).json({ message: "You are not authorized to update this task" });
       return;
     }
 

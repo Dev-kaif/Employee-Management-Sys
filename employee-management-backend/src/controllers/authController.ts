@@ -6,7 +6,7 @@ import { JWT_SECRET } from "../config/config";
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { username, email, password, designation, department, role, company } = req.body;
+    const { username, email, password, designation, department, company } = req.body;
 
     const existingUser = await Employee.findOne({ email });
 
@@ -15,15 +15,14 @@ export const signup = async (req: Request, res: Response) => {
       return;
     }
 
-    if (role === "admin") {
       const existingAdmin = await Employee.findOne({ company, role: "admin" });
+      
       if (existingAdmin) {
         res.status(403).json({
           message: `An admin already exists for the company "${company}"`,
         });
         return;
       }
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -33,7 +32,7 @@ export const signup = async (req: Request, res: Response) => {
       password: hashedPassword,
       designation,
       department,
-      role,
+      role:"admin",
       company,
     });
 

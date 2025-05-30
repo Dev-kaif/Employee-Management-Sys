@@ -6,7 +6,7 @@ const canAccessShift = (req: Request, shiftUserId: string) => {
   return req.user?.role === "admin" || req.user?.userId === shiftUserId;
 };
 
-// POST /shifts/start - Start a new shift (employee only)
+// Start a new shift
 export const startShift = async (req: Request, res: Response) => {
   if (req.user?.role !== "employee") {
     res.status(403).json({ message: "Only employees can start shifts" });
@@ -16,7 +16,7 @@ export const startShift = async (req: Request, res: Response) => {
   try {
     // Check if there is an ongoing shift for this user
     const ongoingShift = await Shift.findOne({
-      user: req.user.userId,
+      employee: req.user.userId,
       endTime: null,
     });
 
@@ -26,36 +26,45 @@ export const startShift = async (req: Request, res: Response) => {
     }
 
     const newShift = await Shift.create({
-      user: req.user.userId,
+      employee: req.user.userId,
       startTime: new Date(),
       endTime: null,
-      workLogs: [],
+      workSummary: null,
     });
 
     res.status(201).json({ message: "Shift started", shift: newShift });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// PUT /shifts/:id/end - End a shift (employee only)
+// End a shift
 export const endShift = async (req: Request, res: Response) => {
-  const userId = req.params.id
+
+  const shiftId = req.params.id
+  const { workSummery }:{ workSummery:string  } = req.body
+
   if (req.user?.role !== "employee") {
     res.status(403).json({ message: "Only employees can end shifts" });
     return;
   }
 
-  if (!canAccessShift(req, userId)) {
-    res.status(403).json({ message: "Access denied" });
+  if(!workSummery){
+    res.status(403).json({ message: "Work Summary is required" });
     return;
   }
 
   try {
-    const shift = await Shift.findById(userId);
+    const shift = await Shift.findById(shiftId);
 
     if (!shift) {
       res.status(404).json({ message: "Shift not found" });
+      return;
+    }
+
+    if (!canAccessShift(req, shift.employee.toString())) {
+      res.status(403).json({ message: "Access denied" });
       return;
     }
 
@@ -65,6 +74,7 @@ export const endShift = async (req: Request, res: Response) => {
     }
 
     shift.endTime = new Date();
+    shift.workSummary = workSummery;
     await shift.save();
 
     res.status(200).json({ message: "Shift ended", shift });
@@ -73,61 +83,18 @@ export const endShift = async (req: Request, res: Response) => {
   }
 };
 
-// PUT /shifts/:id/worklogs - Add work logs to a shift (employee only)
-export const addWorkLogs = async (req: Request, res: Response) => {
-  const userId = req.params.id
 
-  if (req.user?.role !== "employee") {
-    res.status(403).json({ message: "Only employees can add work logs" });
-    return;
-  }
-
-  if (!canAccessShift(req, userId)) {
-    return res.status(403).json({ message: "Access denied" });
-  }
-
-
-  try {
-    const shift = await Shift.findById(userId);
-
-    if (!shift) {
-      res.status(404).json({ message: "Shift not found" });
-      return;
-    }
-
-    if (shift.endTime) {
-      res.status(400).json({ message: "Cannot add logs to ended shift" });
-      return;
-    }
-
-    const { workSummary } = req.body;
-
-    if (!Array.isArray(workSummary)) {
-      res.status(400).json({ message: "workLogs must be an array" });
-      return;
-    }
-
-    shift.workSummary = req.body.workSummary || shift.workSummary;
-
-    await shift.save();
-
-    res.status(200).json({ message: "Work logs added", shift });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-// GET /shifts/:id - Get shift details (employee or admin)
+// /shifts/:id - Get shift details (employee or admin)
 export const getShiftById = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id
-    const shift = await Shift.findById(userId);
+    const shiftId = req.params.id
+    const shift = await Shift.findById(shiftId);
 
     if (!shift) {
       res.status(404).json({ message: "Shift not found" });
       return;
     }
-    if (!canAccessShift(req, userId)) {
+    if (!canAccessShift(req, shift.employee.toString())) {
       res.status(403).json({ message: "Access denied" });
       return 
     }
@@ -138,8 +105,8 @@ export const getShiftById = async (req: Request, res: Response) => {
   }
 };
 
-// GET /shifts - List shifts (employee gets own, admin gets all)
 
+// List shifts (employee gets own, admin gets all)
 export const getShifts = async (req: Request, res: Response) => {
 
   try {
@@ -165,11 +132,12 @@ export const getShifts = async (req: Request, res: Response) => {
 
       const userIds = usersInCompany.map(user => user._id);
 
-      shifts = await Shift.find({ user: { $in: userIds } });
+      shifts = await Shift.find({ employee: { $in: userIds } });
 
     } else if (requestingUser.role === "employee") {
-      shifts = await Shift.find({ user: requestingUser._id });
-
+      
+      shifts = await Shift.find({ employee: requestingUser._id });
+      
     } else {
       res.status(403).json({ message: "Access denied" });
       return;

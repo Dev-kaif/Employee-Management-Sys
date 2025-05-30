@@ -143,12 +143,12 @@ JWT_SECRET=your-secret-key
 
 ### ⏱️ Shift Routes (`/api/shifts`)
 
-| Method | Path              | Access   | Description             |
-| ------ | ------------------| -------- | ------------------------|
-| POST   | /api/shifts/start | Employee | Start a new shift       |
-| POST   | /api/shifts/end   | Employee | End current shift       |
-| GET    | /api/shifts/my    | Employee | Get own shift info      |
-| GET    | /api/shifts/      | Admin    | Get all employee shifts |
+| Method | Path                 | Access         | Description                              |
+| ------ | ---------------------| ---------------| -----------------------------------------|
+| POST   | /api/shifts/start    | Employee       | Start a new shift                        |
+| POST   | /api/shifts/end/:id  | Employee       | End current shift                        |
+| GET    | /api/shifts/my       | Employee       | Get own shift info                       |
+| GET    | /api/shifts/         | Admin/Employee | Employee gets own shifts,Aadmin gets all |
 
 ---
 

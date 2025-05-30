@@ -12,7 +12,7 @@ export const getAllEmployees = async (req: Request, res: Response) => {
 
   try {
     const admin = await Employee.findById(req.user?.userId);
-    const employees = await Employee.find({ company: admin?.company }); // ✅ Filter by company
+    const employees = await Employee.find({ company: admin?.company }); 
     res.status(200).json(employees);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
