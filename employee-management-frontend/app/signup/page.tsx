@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Backend_Url } from "@/config";
+import { useToast } from "@/components/hooks/use-toast"; 
 
 interface FormData {
   fullName: string;
@@ -55,9 +56,9 @@ const itemVariants = {
   visible: {
     y: 0,
     opacity: 1,
-    filter: "blur(0px)", 
+    filter: "blur(0px)",
     transition: {
-      type: "spring", 
+      type: "spring",
       damping: 20,
       stiffness: 100,
     },
@@ -81,6 +82,8 @@ export default function SignupPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { toast } = useToast();
 
   const departments = [
     "Engineering",
@@ -141,7 +144,14 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -157,10 +167,19 @@ export default function SignupPage() {
       setIsSubmitted(true);
 
       localStorage.setItem("token", res.data.token);
-      alert("Signup successful!");
+
+      toast({
+        title: "Signup Successful!",
+        description: "Your admin account has been created.",
+      });
+
       window.location.href = "/adminDashboard";
     } catch (error: any) {
-      alert(error.response?.data?.message || "Signup failed");
+      toast({
+        title: "Signup Failed",
+        description: error.response?.data?.message || "An unexpected error occurred.",
+        variant: "destructive", 
+      });
     } finally {
       setIsSubmitting(false);
     }

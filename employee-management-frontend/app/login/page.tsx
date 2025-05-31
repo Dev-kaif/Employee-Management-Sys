@@ -10,6 +10,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import axios from "axios";
 import { Backend_Url } from "@/config";
+import { useToast } from "@/components/hooks/use-toast";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,12 +18,21 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsSubmitting(true);
+
+    if (!email || !password) {
+      toast({
+        title: "Missing Credentials",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const res = await axios.post(`${Backend_Url}/api/auth/login`, {
@@ -31,12 +41,18 @@ export default function LoginPage() {
       });
 
       localStorage.setItem("token", res.data.token);
-      alert("Login successful");
+      toast({
+        title: "Login Successful!",
+        description: "You've been logged in successfully.",
+      });
 
       window.location.href = "/adminDashboard";
     } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed");
-      alert(err.response?.data?.message || "Login failed");
+      toast({
+        title: "Login Failed",
+        description: err.response?.data?.message || "An unexpected error occurred.",
+        variant: "destructive", 
+      });
     } finally {
       setIsSubmitting(false);
     }
