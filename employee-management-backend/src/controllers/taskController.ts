@@ -11,7 +11,14 @@ export const assignTask = async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, description, assignedTo, dueDate, scheduledFor,isScheduled } = req.body;
+    const {
+      title,
+      description,
+      assignedTo,
+      dueDate,
+      scheduledFor,
+      isScheduled,
+    } = req.body;
 
     const assignedEmployee = await Employee.findById(assignedTo);
 
@@ -38,7 +45,7 @@ export const assignTask = async (req: Request, res: Response) => {
       assignedBy: req.user.userId,
       dueDate,
       scheduledFor,
-      isScheduled: isScheduled, 
+      isScheduled: isScheduled,
       status: isScheduled ? "pending" : "assigned",
     });
 
@@ -117,7 +124,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
   try {
     const tasks = await Task.find({
       assignedTo: req.user?.userId,
-      status: "assigned",
+      status: { $in: ["assigned", "completed", "in-progress"] },
     });
 
     res.status(200).json(tasks);
@@ -129,7 +136,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
 // PUT /api/tasks/update/:id - Employee updates their task status
 export const updateTaskStatus = async (req: Request, res: Response) => {
   try {
-    const { status } = req.body;
+    const newStatus = req.body.status as string;
     const taskId = req.params.id;
 
     const task = await Task.findById(taskId);
@@ -139,24 +146,60 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    // Only assigned employee can update
-    if (task.assignedTo.toString() !== req.user?.userId.toString()) {
+    if (task.assignedTo.toString() !== req.user?.userId?.toString()) {
       res
         .status(403)
         .json({ message: "You are not authorized to update this task" });
       return;
     }
 
-    task.status = status;
+    const currentStatus = task.status;
 
-    if (status === "in-progress") task.startedAt = new Date();
-    if (status === "completed") task.completedAt = new Date();
+    if (newStatus === "in-progress") {
+      if (currentStatus === "assigned" || currentStatus === "pending") {
+        task.status = newStatus;
+        if (!task.startedAt) {
+          task.startedAt = new Date();
+        }
+      } else if (currentStatus === "in-progress") {
+        res.status(200).json({ message: "Task is already in-progress", task });
+        return;
+      } else {
+        res.status(400).json({
+          message: `Cannot change status from "${currentStatus}" to "in-progress".`,
+        });
+        return;
+      }
+    } else if (newStatus === "completed") {
+      if (currentStatus === "in-progress") {
+        task.status = newStatus;
+        if (!task.completedAt) {
+          task.completedAt = new Date();
+        }
+      } else {
+        return res.status(400).json({
+          message: `Cannot change status from "${currentStatus}" to "completed".`,
+        });
+      }
+    } else if (newStatus === "assigned" || newStatus === "pending") {
+      task.status = newStatus;
+      if (newStatus === "assigned" && currentStatus === "in-progress") {
+        task.startedAt = null;
+        task.completedAt = null;
+      }
+    } else {
+      return res.status(400).json({ message: "Invalid status provided." });
+    }
 
     await task.save();
 
-    res.status(200).json({ message: "Task status updated", task });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err });
+    res.status(200).json({ message: "Task status updated successfully", task });
+  } catch (err: any) {
+    console.error("Error updating task status:", err);
+    if (err.name === "CastError") {
+      return res.status(400).json({ message: "Invalid task ID format." });
+    }
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -175,8 +218,7 @@ export const getTaskByTaskId = async (req: Request, res: Response) => {
       res.status(403).json({ message: "You are not authorized to get this task" });
       return;
     }
-    res.status(200).json({ message: "Task status updated", task });
-
+    res.status(200).json(task);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err });
   }
@@ -209,7 +251,7 @@ export const deleteTask = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     // console.error("Error deleting task:", error); // Log the error for debugging
-    if (error.name === 'CastError') { 
+    if (error.name === "CastError") {
       res.status(400).json({ message: "Invalid task ID format." });
       return;
     }
