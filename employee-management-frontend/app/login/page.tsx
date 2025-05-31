@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,21 +38,24 @@ export default function LoginPage() {
     try {
       const res = await axios.post(`${Backend_Url}/api/auth/login`, {
         email,
-        password
+        password,
       });
 
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role",res.data.role);
+      
       toast({
         title: "Login Successful!",
         description: "You've been logged in successfully.",
       });
 
-      window.location.href = "/adminDashboard";
+      window.location.href = isAdmin ? "/adminDashboard" : "/employeeDashboard";
     } catch (err: any) {
       toast({
         title: "Login Failed",
-        description: err.response?.data?.message || "An unexpected error occurred.",
-        variant: "destructive", 
+        description:
+          err.response?.data?.message || "An unexpected error occurred.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -160,6 +164,20 @@ export default function LoginPage() {
                         )}
                       </button>
                     </div>
+                  </motion.div>
+
+                  <motion.div variants={itemVariants}>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={isAdmin}
+                        onChange={(e) => setIsAdmin(e.target.checked)}
+                        className="h-4 w-4 text-[#2563EB] border-gray-300 rounded focus:ring-[#2563EB]"
+                      />
+                      <span className="text-sm text-[#374151]">
+                        Login as Admin
+                      </span>
+                    </label>
                   </motion.div>
 
                   <motion.div variants={itemVariants}>
