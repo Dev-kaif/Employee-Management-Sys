@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 
 import {
   ArrowLeft,
@@ -30,34 +30,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/hooks/use-toast";
 import { Backend_Url } from "@/config";
+import { Employee, Task } from "@/lib/types";
 
-interface Employee {
-  _id: string;
-  username: string;
-  email: string;
-  designation?: string;
-  department?: string;
-  company: string;
-  role: "admin" | "employee";
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Task {
-  _id: string;
-  title: string;
-  description?: string;
-  assignedTo: string;
-  assignedBy: string;
-  dueDate: string;
-  scheduledFor?: string;
-  isScheduled: boolean;
-  status: "pending" | "assigned" | "in-progress" | "completed";
-  startedAt?: string;
-  completedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 const EmployeeDetail = () => {
   const params = useParams();

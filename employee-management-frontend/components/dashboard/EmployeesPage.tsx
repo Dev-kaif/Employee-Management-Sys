@@ -10,7 +10,7 @@ import {
   Filter,
   Users,
   AlertCircle,
-} from "lucide-react"; // Added AlertCircle icon
+} from "lucide-react"; 
 import axios from "@/lib/axios";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
@@ -22,7 +22,7 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog"; // Added DialogFooter, DialogDescription
+} from "@/components/ui/dialog"; 
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,20 +33,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/hooks/use-toast";
 import { Backend_Url } from "@/config";
+import { Employee } from "@/lib/types";
 
-interface Employee {
-  _id: string;
-  username: string;
-  email: string;
-  designation?: string;
-  department?: string;
-  company: string;
-  role: "admin" | "employee";
-  createdAt: string;
-  updatedAt: string;
-  status?: "active" | "inactive";
-  avatar?: string;
-}
 
 const EmployeesPage = () => {
   const router = useRouter();
@@ -89,7 +77,7 @@ const EmployeesPage = () => {
         `${Backend_Url}/api/employees`
       );
       setEmployees(
-        response.data.map((emp) => ({ ...emp, status: emp.status || "active" }))
+        response.data.map((emp) => ({ ...emp }))
       );
     } catch (error: any) {
       toast({
@@ -113,7 +101,7 @@ const EmployeesPage = () => {
     const employeeEmail = employee.email || "";
     const employeeDesignation = employee.designation || "";
     const employeeDepartment = employee.department || "";
-    const employeeStatus = employee.status || "";
+    // const employeeStatus = employee.status || "";
 
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
 
@@ -125,10 +113,11 @@ const EmployeesPage = () => {
     const matchesDepartment =
       departmentFilter === "all" || employeeDepartment === departmentFilter;
 
-    const matchesStatus =
-      statusFilter === "all" || employeeStatus === statusFilter;
+    // const matchesStatus =
+    //   statusFilter === "all" || employeeStatus === statusFilter;
 
-    return matchesSearch && matchesDepartment && matchesStatus;
+    // return matchesSearch && matchesDepartment && matchesStatus;
+    return matchesSearch && matchesDepartment ;
   });
 
   const handleCreateEmployee = async () => {

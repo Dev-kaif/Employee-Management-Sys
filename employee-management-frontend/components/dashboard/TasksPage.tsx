@@ -31,23 +31,9 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/hooks/use-toast";
 import axios from "@/lib/axios";
 import { Backend_Url } from "@/config";
+import { Employee, Task } from "@/lib/types";
 
-interface Employee {
-  _id: string;
-  username: string;
-  email: string;
-}
 
-interface Task {
-  _id: string;
-  title: string;
-  description?: string;
-  status: "pending" | "assigned" | "in-progress" | "completed";
-  dueDate: string;
-  assignedTo: Employee;
-  assignedBy: Employee;
-  createdAt: string;
-}
 
 const TasksPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);

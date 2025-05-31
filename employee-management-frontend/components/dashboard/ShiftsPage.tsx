@@ -8,24 +8,8 @@ import Input from '@/components/ui/input';
 import { useToast } from '@/components/hooks/use-toast';
 import axios from '@/lib/axios';
 import { Backend_Url } from '@/config';
+import { Employee, Shift } from '@/lib/types';
 
-interface Employee {
-  _id: string;
-  username: string;
-  designation?: string;
-  department?: string;
-}
-
-interface Shift {
-  _id: string;
-  employee: Employee; 
-  startTime: string;
-  endTime?: string; 
-  workSummary?: string;
-  totalHours?: number; 
-  createdAt: string;
-  updatedAt: string;
-}
 
 const ShiftsPage = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -248,8 +232,8 @@ const ShiftsPage = () => {
                             {shift.totalHours.toFixed(1)}h worked
                           </p>
                         )}
-                        {!shift.endTime && shift.startTime && ( // Display approximate for ongoing shifts
-                          <p className="text-text font-medium text-sm mt-1 text-text-secondary">
+                        {!shift.endTime && shift.startTime && ( 
+                          <p className="font-medium text-sm mt-1 text-text-secondary">
                             Ongoing ({getShiftDuration(shift).toFixed(1)}h so far)
                           </p>
                         )}
