@@ -1,35 +1,36 @@
+// app/employeedashboard/layout.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '@/components/dashboard/Sidebar';
-import { Calendar, CheckSquare, Menu, Users, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import type { ReactNode } from 'react';
+import Sidebar from '@/components/dashboard/Sidebar'; 
 import Header from '@/components/ui/header'
+import { Calendar, CheckSquare, Menu, Users, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react'; 
+import type { ReactNode } from 'react';
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function EmployeeDashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
 
   const menuItems = [
     {
-      name: 'Employees',
+      name: 'Dashboard',
       icon: Users,
-      path: '/adminDashboard/employees',
-      description: 'Manage team members',
+      path: '/employeedashboard', // Points to the main dashboard page (Active Tasks)
+      description: 'Your active tasks and shift status',
     },
     {
-      name: 'Tasks',
+      name: 'Task History',
       icon: CheckSquare,
-      path: '/adminDashboard/tasks',
-      description: 'Track assignments',
+      path: '/employeedashboard/task', // Points to the task history list page
+      description: 'Review past and current tasks',
     },
     {
-      name: 'Shifts',
+      name: 'Shift History',
       icon: Calendar,
-      path: '/adminDashboard/shifts',
-      description: 'Schedule overview',
+      path: '/employeedashboard/shift', // Points to the shift history page
+      description: 'Overview of your past shifts',
     },
   ];
 
@@ -38,11 +39,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (!token) {
       router.push('/');
     }
-
-    if(localStorage.getItem("role") !== "admin"){
-      router.push('/');
-    }
-  }, []);
+  }, [router]); 
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full overflow-hidden">
@@ -55,7 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             animate={{ width: 256, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="h-full"
+            className="h-full fixed top-0 left-0 z-20" // Add fixed positioning and z-index
           >
             <Sidebar menuItem={menuItems} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
           </motion.div>
@@ -63,17 +60,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       <motion.div
-        key="content"
-        className="flex-1 flex flex-col"
-        initial={false}
-        animate={{
-          paddingLeft: sidebarOpen ? 0 : 0, 
-        }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        key="content-area" 
+        className="flex-1 flex flex-col transition-all duration-300 ease-in-out"
+        style={{ marginLeft: sidebarOpen ? '256px' : '0px' }} 
       >
-        {/* Header */}
-        <Header nametype={"Admin"} aboolean={sidebarOpen} setFunction={()=>setSidebarOpen(!sidebarOpen)} /> 
-
+        <Header nametype={"Employee"} aboolean={sidebarOpen} setFunction={()=>setSidebarOpen(!sidebarOpen)} /> 
 
         {/* Page content */}
         <motion.main
