@@ -149,3 +149,41 @@ export const deleteEmployee = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+export const changeEmployeePassword = async (req: Request, res: Response) => {
+  // Only an admin should be able to change another employee's password
+  if (!isAdmin(req)) {
+    res.status(403).json({ message: "Access denied, admin only" });
+    return;
+  }
+
+  const { id } = req.params; 
+  const { newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    res.status(400).json({ message: "New password must be at least 6 characters long." });
+    return;
+  }
+
+  try {
+    const employee = await Employee.findById(id);
+
+    if (!employee) {
+      res.status(404).json({ message: "Employee not found." });
+      return;
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    employee.password = hashedPassword;
+    await employee.save(); 
+
+    res.status(200).json({ message: "Employee password updated successfully." });
+  } catch (error) {
+    console.error("Change Employee Password Error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};

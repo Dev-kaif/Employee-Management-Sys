@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'; // Added DialogFooter, DialogDescription
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
   User,
   CheckSquare,
   AlertCircle,
+  Key, 
 } from "lucide-react";
 import axios from "@/lib/axios";
 import Button from "@/components/ui/button";
@@ -71,9 +72,12 @@ const EmployeeDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isEdited, setIsEdited] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Employee>>({});
-    const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null); // New state to store employee to delete
-      const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // New state for delete modal
-    
+  const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false); // New state
+  const [newPassword, setNewPassword] = useState(''); 
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
   useEffect(() => {
     if (!id) return;
 
@@ -106,7 +110,7 @@ const EmployeeDetail = () => {
     };
 
     fetchEmployeeAndTasks();
-  }, [id, toast,isEdited]);
+  }, [id, toast, isEdited]);
 
   const handleSave = async () => {
     try {
@@ -158,28 +162,65 @@ const EmployeeDetail = () => {
     setIsDeleteModalOpen(true);
   };
 
-    // Function to perform the actual deletion after confirmation
-    const confirmDelete = async () => {
-      if (!employeeToDelete) return; // Should not happen if modal is open
-  
-      try {
-        await axios.delete(`${Backend_Url}/api/employees/${employeeToDelete.id}`);
-        setIsDeleteModalOpen(false); // Close the modal
-        setEmployeeToDelete(null); // Clear employee to delete
-        
-        toast({
-          title: 'Employee deleted',
-          description: `${employeeToDelete.name} has been removed from the team.`,
-        });
-        router.push("/adminDashboard/employees")
-      } catch (error: any) {
-        toast({
-          title: 'Error deleting employee',
-          description: error.response?.data?.message || 'Please try again later.',
-          variant: 'destructive',
-        });
-      }
-    };
+  const confirmDelete = async () => {
+    if (!employeeToDelete) return;
+
+    try {
+      await axios.delete(`${Backend_Url}/api/employees/${employeeToDelete.id}`);
+      setIsDeleteModalOpen(false);
+      setEmployeeToDelete(null);
+      
+      toast({
+        title: 'Employee deleted',
+        description: `${employeeToDelete.name} has been removed from the team.`,
+      });
+      router.push("/adminDashboard/employees")
+    } catch (error: any) {
+      toast({
+        title: 'Error deleting employee',
+        description: error.response?.data?.message || 'Please try again later.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Validation Error',
+        description: 'New password must be at least 6 characters long.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: 'Validation Error',
+        description: 'New password and confirm password do not match.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await axios.put(`${Backend_Url}/api/employees/changePassword/${id}`, {
+        newPassword,
+      });
+      toast({
+        title: 'Password changed successfully',
+        description: 'Employee\'s password has been updated.',
+      });
+      setIsChangePasswordModalOpen(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      toast({
+        title: 'Error changing password',
+        description: error.response?.data?.message || 'Failed to change password. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -442,8 +483,14 @@ const EmployeeDetail = () => {
                 View Schedule
               </Button>
               <Button
-                onClick={() => handleDeleteEmployee(id, employee.username)} // Calls the new handler
-
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setIsChangePasswordModalOpen(true)} // Open password change modal
+              >
+                <Key size={16} className="mr-2" /> Change Password
+              </Button>
+              <Button
+                onClick={() => handleDeleteEmployee(id, employee.username)}
                 variant="outline"
                 className="w-full justify-start text-error border-error hover:bg-error hover:text-white"
               >
@@ -453,6 +500,7 @@ const EmployeeDetail = () => {
           </div>
         </div>
       </div>
+      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="bg-surface sm:max-w-[425px]">
           <DialogHeader>
@@ -472,6 +520,50 @@ const EmployeeDetail = () => {
               onClick={confirmDelete}
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={isChangePasswordModalOpen} onOpenChange={setIsChangePasswordModalOpen}>
+        <DialogContent className="bg-surface sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-primary flex items-center gap-2">
+                <Key size={20}/> Change Employee Password
+            </DialogTitle>
+            <DialogDescription className="mt-2">
+              Enter a new password for **{employee.username}**.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setIsChangePasswordModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangePassword}>
+              Update Password
             </Button>
           </DialogFooter>
         </DialogContent>

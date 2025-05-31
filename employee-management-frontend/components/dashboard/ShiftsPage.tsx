@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Filter, Download } from 'lucide-react';
-import Button from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import Input from '@/components/ui/input';
@@ -19,10 +18,11 @@ interface Employee {
 
 interface Shift {
   _id: string;
-  employee: Employee; // Populated employee object
+  employee: Employee; 
   startTime: string;
-  endTime?: string; // endTime can be null if shift is ongoing
+  endTime?: string; 
   workSummary?: string;
+  totalHours?: number; 
   createdAt: string;
   updatedAt: string;
 }
@@ -67,8 +67,6 @@ const ShiftsPage = () => {
     const matchesEmployee = employeeFilter === 'all' || shift.employee?._id === employeeFilter;
     const matchesDepartment = departmentFilter === 'all' || shift.employee?.department === departmentFilter;
     
-    const status = shift.endTime ? 'completed' : 'in-progress'; // Simplified status logic
-
     return matchesDate && matchesEmployee && matchesDepartment;
   });
 
@@ -111,16 +109,23 @@ const ShiftsPage = () => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  const calculateHoursWorked = (startTime: string, endTime?: string) => {
-    if (!endTime) return 0;
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const diffMs = end.getTime() - start.getTime();
-    return Math.round(diffMs / (1000 * 60 * 60) * 10) / 10; // Round to one decimal place
+  const getShiftDuration = (shift: Shift) => {
+    if (typeof shift.totalHours === 'number') {
+      return shift.totalHours;
+    }
+    if (shift.startTime && !shift.endTime) {
+      const start = new Date(shift.startTime);
+      const now = new Date();
+      const diffMs = now.getTime() - start.getTime();
+      return Math.round(diffMs / (1000 * 60 * 60) * 10) / 10; // Calculate approximate ongoing hours
+    }
+    return 0;
   };
 
   const calculateTotalHoursForDay = (dayShifts: Shift[]) => {
-    return dayShifts.reduce((total, shift) => total + calculateHoursWorked(shift.startTime, shift.endTime), 0);
+    return dayShifts.reduce((total, shift) => {
+      return total + (typeof shift.totalHours === 'number' ? shift.totalHours : 0);
+    }, 0);
   };
 
   if (loading) {
@@ -145,7 +150,7 @@ const ShiftsPage = () => {
       </div>
 
       <div className="bg-surface rounded-lg p-4 mb-6 border border-gray-200 animate-slide-up">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4"> {/* Adjusted grid for filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <Input
               type="date"
@@ -206,7 +211,7 @@ const ShiftsPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-text-secondary">Total Hours</p>
-                  <p className="text-lg font-semibold text-text">{calculateTotalHoursForDay(dayShifts)}h</p>
+                  <p className="text-lg font-semibold text-text">{calculateTotalHoursForDay(dayShifts).toFixed(1)}h</p> {/* Updated */}
                 </div>
               </div>
             </div>
@@ -238,9 +243,14 @@ const ShiftsPage = () => {
                           <Clock size={14} />
                           <span>{formatTime(shift.startTime)} - {shift.endTime ? formatTime(shift.endTime) : 'Ongoing'}</span>
                         </div>
-                        {shift.endTime && (
+                        {typeof shift.totalHours === 'number' && ( // Updated: Check for stored totalHours
                           <p className="text-text font-medium text-sm mt-1">
-                            {calculateHoursWorked(shift.startTime, shift.endTime)}h worked
+                            {shift.totalHours.toFixed(1)}h worked
+                          </p>
+                        )}
+                        {!shift.endTime && shift.startTime && ( // Display approximate for ongoing shifts
+                          <p className="text-text font-medium text-sm mt-1 text-text-secondary">
+                            Ongoing ({getShiftDuration(shift).toFixed(1)}h so far)
                           </p>
                         )}
                       </div>
