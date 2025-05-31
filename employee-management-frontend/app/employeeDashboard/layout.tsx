@@ -39,6 +39,9 @@ export default function EmployeeDashboardLayout({ children }: { children: ReactN
     if (!token) {
       router.push('/');
     }
+    if(localStorage.getItem("role") !== "employee"){
+      router.push('/');
+    }
   }, [router]); 
 
   return (
