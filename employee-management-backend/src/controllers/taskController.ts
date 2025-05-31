@@ -42,7 +42,7 @@ export const assignTask = async (req: Request, res: Response) => {
       status: scheduledFor ? "pending" : "assigned",
     });
 
-    res.status(201).json({message:"task Created Sucessfully", task});
+    res.status(201).json({ message: "task Created Sucessfully", task });
   } catch (err) {
     res.status(500).json({ message: "Error creating task", error: err });
   }
@@ -83,16 +83,22 @@ export const getAllTasks = async (req: Request, res: Response) => {
 export const getTasksByEmployee = async (req: Request, res: Response) => {
   try {
     if (req.user?.role !== "admin") {
-      res.status(403).json({ message: "Only admins can view tasks by employee" });
+      res
+        .status(403)
+        .json({ message: "Only admins can view tasks by employee" });
       return;
     }
 
     const employee = await Employee.findById(req.params.id);
     const admin = await Employee.findById(req.user.userId);
 
-    if ( !employee || !admin || employee.company?.toString() !== admin.company?.toString()) {
+    if (
+      !employee ||
+      !admin ||
+      employee.company?.toString() !== admin.company?.toString()
+    ) {
       res.status(403).json({ message: "Access denied" });
-      return ;
+      return;
     }
 
     const tasks = await Task.find({ assignedTo: req.params.id }).populate(
@@ -135,7 +141,9 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
     // Only assigned employee can update
     if (task.assignedTo.toString() !== req.user?.userId.toString()) {
-      res.status(403).json({ message: "You are not authorized to update this task" });
+      res
+        .status(403)
+        .json({ message: "You are not authorized to update this task" });
       return;
     }
 
@@ -147,6 +155,28 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     await task.save();
 
     res.status(200).json({ message: "Task status updated", task });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err });
+  }
+};
+
+// GET /api/tasks/:id - Employee gets thier task by id
+export const getTaskByTaskId = async (req: Request, res: Response) => {
+  try {
+    const taskId = req.params.id;
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      res.status(404).json({ message: "Task not found" });
+      return;
+    }
+
+    if (task.assignedTo.toString() !== req.user?.userId.toString()) {
+      res.status(403).json({ message: "You are not authorized to get this task" });
+      return;
+    }
+    res.status(200).json({ message: "Task status updated", task });
+
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err });
   }

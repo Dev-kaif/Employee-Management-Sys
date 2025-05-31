@@ -187,3 +187,20 @@ export const changeEmployeePassword = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
+
+// employee gets his own data
+export const getMyEmployee = async (req: Request, res: Response) => {
+  try {
+    const employee = await Employee.findById(req.user?.userId);
+
+    if (!employee) {
+      res.status(404).json({ message: "Employee not found" });
+      return;
+    }
+
+    res.status(200).json(employee);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

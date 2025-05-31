@@ -5,6 +5,7 @@ import {
   getTasksByEmployee,
   getMyTasks,
   updateTaskStatus,
+  getTaskByTaskId,
 } from "../controllers/taskController";
 import { authenticate } from "../middlewares/authMiddleware";
 
@@ -20,5 +21,6 @@ router.get("/employee/:id", getTasksByEmployee);
 // Employee
 router.get("/my", getMyTasks);
 router.put("/update/:id", updateTaskStatus);
+router.get("/:id", getTaskByTaskId);
 
 export default router;
