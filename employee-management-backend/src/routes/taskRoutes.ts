@@ -6,6 +6,7 @@ import {
   getMyTasks,
   updateTaskStatus,
   getTaskByTaskId,
+  deleteTask,
 } from "../controllers/taskController";
 import { authenticate } from "../middlewares/authMiddleware";
 
@@ -17,6 +18,7 @@ router.use(authenticate);
 router.post("/assign", assignTask);
 router.get("/", getAllTasks);
 router.get("/employee/:id", getTasksByEmployee);
+router.delete("/:id", deleteTask);
 
 // Employee
 router.get("/my", getMyTasks);

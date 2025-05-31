@@ -11,7 +11,7 @@ export const assignTask = async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, description, assignedTo, dueDate, scheduledFor } = req.body;
+    const { title, description, assignedTo, dueDate, scheduledFor,isScheduled } = req.body;
 
     const assignedEmployee = await Employee.findById(assignedTo);
 
@@ -38,8 +38,8 @@ export const assignTask = async (req: Request, res: Response) => {
       assignedBy: req.user.userId,
       dueDate,
       scheduledFor,
-      isScheduled: !!scheduledFor,
-      status: scheduledFor ? "pending" : "assigned",
+      isScheduled: isScheduled, 
+      status: isScheduled ? "pending" : "assigned",
     });
 
     res.status(201).json({ message: "task Created Sucessfully", task });
@@ -179,5 +179,40 @@ export const getTaskByTaskId = async (req: Request, res: Response) => {
 
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err });
+  }
+};
+
+export const deleteTask = async (req: Request, res: Response) => {
+  try {
+    if (req.user?.role !== "admin") {
+      res.status(403).json({ message: "Forbidden: Only admins can delete tasks." });
+      return;
+    }
+
+    const taskId = req.params.id; 
+
+    const taskToDelete = await Task.findById(taskId);
+
+    if (!taskToDelete) {
+      res.status(404).json({ message: "Task not found." });
+      return;
+    }
+
+    if (taskToDelete.assignedBy.toString() !== req.user?.userId.toString()) {
+      res.status(403).json({ message: "You are not authorized to get this task" });
+      return;
+    }
+
+    await Task.findByIdAndDelete(taskId);
+
+    res.status(200).json({ message: "Task deleted successfully." });
+
+  } catch (error: any) {
+    // console.error("Error deleting task:", error); // Log the error for debugging
+    if (error.name === 'CastError') { 
+      res.status(400).json({ message: "Invalid task ID format." });
+      return;
+    }
+    res.status(500).json({ message: "Internal server error.", error: error.message });
   }
 };
