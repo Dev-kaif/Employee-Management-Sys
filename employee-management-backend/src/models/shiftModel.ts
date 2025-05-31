@@ -15,6 +15,9 @@ const shiftSchema = new mongoose.Schema(
     endTime: {
       type: Date,
     },
+    totalHours: {
+      type: Number, 
+    },
     workSummary: {
       type: String,
     },

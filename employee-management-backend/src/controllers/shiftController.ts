@@ -29,6 +29,7 @@ export const startShift = async (req: Request, res: Response) => {
       employee: req.user.userId,
       startTime: new Date(),
       endTime: null,
+      totalHours: null,
       workSummary: null,
     });
 
@@ -41,17 +42,16 @@ export const startShift = async (req: Request, res: Response) => {
 
 // End a shift
 export const endShift = async (req: Request, res: Response) => {
-
-  const shiftId = req.params.id
-  const { workSummery }:{ workSummery:string  } = req.body
+  const shiftId = req.params.id;
+  const { workSummary }: { workSummary: string } = req.body; 
 
   if (req.user?.role !== "employee") {
     res.status(403).json({ message: "Only employees can end shifts" });
     return;
   }
 
-  if(!workSummery){
-    res.status(403).json({ message: "Work Summary is required" });
+  if (!workSummary) {
+    res.status(400).json({ message: "Work Summary is required" }); 
     return;
   }
 
@@ -74,11 +74,22 @@ export const endShift = async (req: Request, res: Response) => {
     }
 
     shift.endTime = new Date();
-    shift.workSummary = workSummery;
+    shift.workSummary = workSummary;
+
+    // Calculate total hours
+    if (shift.startTime && shift.endTime) {
+      const diffMs = shift.endTime.getTime() - shift.startTime.getTime();
+      shift.totalHours = diffMs / (1000 * 60 * 60); // Convert milliseconds to hours
+    } else {
+      // Handle cases where startTime might be missing (though it's required in schema)
+      shift.totalHours = 0;
+    }
+
     await shift.save();
 
     res.status(200).json({ message: "Shift ended", shift });
   } catch (error) {
+    console.error("Error ending shift:", error); 
     res.status(500).json({ message: "Internal server error" });
   }
 };
