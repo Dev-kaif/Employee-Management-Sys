@@ -8,7 +8,7 @@ import Dashboard from "@/components/sections/dashboard"
 import Testimonials from "@/components/sections/testimonials"
 import Pricing from "@/components/sections/pricing"
 import CTA from "@/components/sections/cta"
-import Header from "@/components/sections/header"
+import Navbar from "@/components/sections/navbar"
 import Footer from "@/components/sections/footer"
 
 export default function Home() {
@@ -24,7 +24,7 @@ export default function Home() {
 
   return (
     <main className="relative overflow-hidden bg-[#F9FAFB]">
-      <Header />
+      <Navbar />
       <motion.div ref={containerRef} style={{ opacity, scale }} className="relative z-10">
         <Hero />
         <Features />

@@ -7,7 +7,7 @@ import { Menu, X } from "lucide-react"
 import Button from "@/components/ui/button"
 import Logo from "@/components/ui/logo"
 
-export default function Header() {
+export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
