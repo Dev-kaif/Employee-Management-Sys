@@ -15,15 +15,13 @@ export const dashboardAPI = {
   },
 
   getTaskById: async (taskId: string): Promise<Task> => {
-    const response = await axios.get<Task>(`${Backend_Url}/api/tasks/employee/${taskId}`);
+    const response = await axios.get<Task>(`${Backend_Url}/api/tasks/${taskId}`);
     return response.data;
   },
   updateTaskStatus: async (taskId: string, status: Task['status']): Promise<Task> => {
     const response = await axios.put<Task>(`${Backend_Url}/api/tasks/${taskId}`, { status });
     return response.data;
-  },
-
-
+  },  
   startShift: async (): Promise<Shift> => {
     const response = await axios.post<Shift>(`${Backend_Url}/api/shifts/start`);
     return response.data;

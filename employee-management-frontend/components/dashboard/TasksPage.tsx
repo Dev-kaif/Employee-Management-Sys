@@ -8,6 +8,7 @@ import {
   User,
   Filter,
   CheckSquare,
+  Trash2,
 } from "lucide-react";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
@@ -17,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,14 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/hooks/use-toast";
 import axios from "@/lib/axios";
 import { Backend_Url } from "@/config";
 import { Employee, Task } from "@/lib/types";
-
-
 
 const TasksPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -42,78 +42,93 @@ const TasksPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
+
+  // Create Task Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
     assignedTo: "",
     dueDate: "",
+    scheduledFor: "",
   });
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreated, setIsCreated] = useState(false);
+
+  // Delete Confirmation Dialog states
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
+  const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
+  const [taskToDeleteTitle, setTaskToDeleteTitle] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [tasksResponse, employeesResponse] = await Promise.all([
-          axios.get<Task[]>(`${Backend_Url}/api/tasks`),
-          axios.get<Employee[]>(`${Backend_Url}/api/employees`),
-        ]);
-        setTasks(tasksResponse.data);
-        setEmployees(employeesResponse.data);
-      } catch (error: any) {
-        toast({
-          title: "Error fetching data",
-          description:
-            error.response?.data?.message ||
-            "Failed to load tasks or employees.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [tasksResponse, employeesResponse] = await Promise.all([
+        axios.get<Task[]>(`${Backend_Url}/api/tasks`),
+        axios.get<Employee[]>(`${Backend_Url}/api/employees`),
+      ]);
+      setTasks(tasksResponse.data);
+      setEmployees(employeesResponse.data);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching data",
+        description:
+          error.response?.data?.message ||
+          "Failed to load tasks or employees.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
-  }, [toast]);
+  }, [toast, isCreated, isDeleting]);
 
   const filteredTasks = tasks.filter((task) => {
     const assignedToName = task.assignedTo?.username?.toLowerCase() || "";
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      "" ||
       assignedToName.includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || task.status === statusFilter;
-    // const matchesPriority = priorityFilter === 'all' || (task.priority === priorityFilter);
     const matchesAssignee =
       assigneeFilter === "all" || task.assignedTo?._id === assigneeFilter;
 
-    // return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
     return matchesSearch && matchesStatus && matchesAssignee;
   });
 
   const handleCreateTask = async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let isScheduled = false;
+    let scheduledForISO: string | undefined = undefined;
+
+    if (newTask.scheduledFor) {
+      const selectedScheduledDate = new Date(newTask.scheduledFor);
+      selectedScheduledDate.setHours(0, 0, 0, 0);
+
+      if (selectedScheduledDate.getTime() !== today.getTime()) {
+        isScheduled = true;
+      }
+      scheduledForISO = selectedScheduledDate.toISOString();
+    }
+
     try {
-      const response = await axios.post(`${Backend_Url}/api/tasks/assign`, {
+      const payload = {
         ...newTask,
         dueDate: new Date(newTask.dueDate).toISOString(),
-        scheduledFor: newTask.dueDate
-          ? new Date(newTask.dueDate).toISOString()
-          : undefined,
-      });
-      setTasks((prev) => [
-        {
-          ...response.data.task,
-          assignedTo: employees.find((emp) => emp._id === newTask.assignedTo),
-          assignedBy: { _id: "current_user_id", username: "Current User" },
-        },
-        ...prev,
-      ]); // Adjust assignedBy with actual user data if available
-      setNewTask({ title: "", description: "", assignedTo: "", dueDate: "" });
+        scheduledFor: scheduledForISO,
+        isScheduled: isScheduled,
+      };
+
+      const response = await axios.post(`${Backend_Url}/api/tasks/assign`, payload);
+      setNewTask({ title: "", description: "", assignedTo: "", dueDate: "", scheduledFor: "" });
       setIsCreateModalOpen(false);
 
       toast({
@@ -126,10 +141,46 @@ const TasksPage = () => {
         description: error.response?.data?.message || "Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setIsCreated((prev) => !prev);
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const handleDeleteClick = (taskId: string, taskTitle: string) => {
+    setTaskToDeleteId(taskId);
+    setTaskToDeleteTitle(taskTitle);
+    setIsDeleteConfirmModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!taskToDeleteId) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await axios.delete(`${Backend_Url}/api/tasks/${taskToDeleteId}`);
+      toast({
+        title: "Task Deleted",
+        description: response.data.message || "Task removed successfully.",
+      });
+      setIsDeleteConfirmModalOpen(false);
+      setTaskToDeleteId(null);
+      setTaskToDeleteTitle("");
+    } catch (error: any) {
+      console.error("Failed to delete task:", error);
+      toast({
+        title: "Deletion Failed",
+        description: error.response?.data?.message || "Failed to delete the task. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const getStatusColor = (status: string, isPastDeadline: boolean) => {
+    if (isPastDeadline) {
+      return "bg-red-600 text-white"; // Red for passed deadline
+    }
     switch (status) {
       case "completed":
         return "bg-success text-white";
@@ -143,6 +194,29 @@ const TasksPage = () => {
         return "bg-gray-500 text-white";
     }
   };
+
+  // --- New: Helper function to calculate days left/past deadline ---
+  const getDeadlineStatus = (dueDate: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to midnight
+
+    const deadline = new Date(dueDate);
+    deadline.setHours(0, 0, 0, 0); // Normalize deadline to midnight
+
+    const diffTime = deadline.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Calculate days, rounding up
+
+    if (diffDays < 0) {
+      return { text: `Passed Deadline (${Math.abs(diffDays)} days ago)`, isPastDeadline: true };
+    } else if (diffDays === 0) {
+      return { text: "Due Today!", isPastDeadline: false };
+    } else if (diffDays === 1) {
+      return { text: "Due Tomorrow!", isPastDeadline: false };
+    } else {
+      return { text: `${diffDays} days left`, isPastDeadline: false };
+    }
+  };
+  // --- End of new helper function ---
 
   if (loading) {
     return (
@@ -164,6 +238,7 @@ const TasksPage = () => {
           </p>
         </div>
 
+        {/* Create Task Dialog */}
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary-hover flex items-center gap-2">
@@ -189,14 +264,13 @@ const TasksPage = () => {
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Textarea
+                <Input
                   id="description"
                   value={newTask.description}
                   onChange={(e) =>
                     setNewTask({ ...newTask, description: e.target.value })
                   }
                   placeholder="Enter task description"
-                  rows={3}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -220,9 +294,20 @@ const TasksPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="scheduledFor">Assignment Start Date</Label>
+                  <Input
+                    id="scheduledFor"
+                    type="date"
+                    value={newTask.scheduledFor}
+                    onChange={(e) =>
+                      setNewTask({ ...newTask, scheduledFor: e.target.value })
+                    }
+                  />
+                </div>
               </div>
               <div>
-                <Label htmlFor="dueDate">Due Date</Label>
+                <Label htmlFor="dueDate">Completion Due Date</Label>
                 <Input
                   id="dueDate"
                   type="date"
@@ -232,7 +317,7 @@ const TasksPage = () => {
                   }
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-4">
+              <DialogFooter className="pt-4">
                 <Button
                   variant="outline"
                   onClick={() => setIsCreateModalOpen(false)}
@@ -248,7 +333,7 @@ const TasksPage = () => {
                 >
                   Create Task
                 </Button>
-              </div>
+              </DialogFooter>
             </div>
           </DialogContent>
         </Dialog>
@@ -300,52 +385,77 @@ const TasksPage = () => {
       </div>
 
       <div className="space-y-4">
-        {filteredTasks.map((task, index) => (
-          <div
-            key={task._id}
-            className="bg-surface rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 animate-slide-up"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-text mb-2">
-                  {task.title}
-                </h3>
-                <p className="text-text-secondary mb-3">{task.description}</p>
+        {filteredTasks.map((task, index) => {
+          const deadlineStatus = getDeadlineStatus(task.dueDate);
+          const isPastDeadline = deadlineStatus.isPastDeadline;
 
-                <div className="flex items-center gap-4 text-sm text-text-secondary">
-                  <span className="flex items-center gap-1">
-                    <User size={14} />
-                    {task.assignedTo?.username || "N/A"}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar size={14} />
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                  </span>
-                  <span>
-                    Created: {new Date(task.createdAt).toLocaleDateString()}
-                  </span>
+          return (
+            <div
+              key={task._id}
+              className="bg-surface rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-all duration-200 animate-slide-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-text mb-2">
+                    {task.title}
+                  </h3>
+                  <p className="text-text-secondary mb-3">{task.description}</p>
+
+                  <div className="flex items-center gap-4 text-sm text-text-secondary">
+                    <span className="flex items-center gap-1">
+                      <User size={14} />
+                      {task.assignedTo?.username || "N/A"}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar size={14} className={isPastDeadline ? "text-red-500" : ""} />
+                      {/* Display Due Date with days left/passed status */}
+                      Complete By: {new Date(task.dueDate).toLocaleDateString()}
+                      {` (`}
+                      <span className={isPastDeadline ? "font-bold text-red-600" : "font-medium text-blue-600"}>
+                        {deadlineStatus.text}
+                      </span>
+                      {`)`}
+                    </span>
+                    {task.scheduledFor && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} className="text-purple-500" />
+                        Planned Assignment: {new Date(task.scheduledFor).toLocaleDateString()}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <CheckSquare size={14} />
+                      Scheduled: {task.isScheduled ? "Yes" : "No"}
+                    </span>
+                    <span>
+                      Created: {new Date(task.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                {/* Status Badge - now conditional on deadline */}
+                <Badge className={getStatusColor(task.status, isPastDeadline)}>
+                  {isPastDeadline ? "Passed Deadline" : task.status.replace("-", " ")}
+                </Badge>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-error border-error hover:bg-error hover:text-white"
+                    onClick={() => handleDeleteClick(task._id, task.title)}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 size={16} className="mr-1" />
+                    Delete
+                  </Button>
                 </div>
               </div>
             </div>
-
-            <div className="flex items-center justify-between">
-              <Badge className={getStatusColor(task.status)}>
-                {task.status.replace("-", " ")}
-              </Badge>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-error border-error hover:bg-error hover:text-white"
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredTasks.length === 0 && (
@@ -357,6 +467,42 @@ const TasksPage = () => {
           </p>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmModalOpen} onOpenChange={setIsDeleteConfirmModalOpen}>
+        <DialogContent className="bg-surface sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the task " **{taskToDeleteTitle}** "? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteConfirmModalOpen(false);
+                setTaskToDeleteId(null);
+                setTaskToDeleteTitle("");
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                'Delete Task'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
