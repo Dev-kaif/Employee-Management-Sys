@@ -1,4 +1,3 @@
-// lib/api.ts
 import axios from '@/lib/axios';
 import { Backend_Url } from '@/config'; 
 import { Task, Shift, Employee } from '@/lib/types'; 
@@ -19,7 +18,7 @@ export const dashboardAPI = {
     return response.data;
   },
   updateTaskStatus: async (taskId: string, status: Task['status']): Promise<Task> => {
-    const response = await axios.put<Task>(`${Backend_Url}/api/tasks/${taskId}`, { status });
+    const response = await axios.put<Task>(`${Backend_Url}/api/tasks/update/${taskId}`, { status });
     return response.data;
   },  
   startShift: async (): Promise<Shift> => {

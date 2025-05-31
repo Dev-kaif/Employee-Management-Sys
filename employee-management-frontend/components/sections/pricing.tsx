@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { motion, useScroll, useTransform } from "motion/react"
-import Card from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import Button from "@/components/ui/button"
 import { Check } from "lucide-react"
 

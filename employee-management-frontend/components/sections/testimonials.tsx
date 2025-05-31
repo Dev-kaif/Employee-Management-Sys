@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { motion, useScroll, useTransform } from "motion/react"
-import Card from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, Star } from "lucide-react"
 
 export default function Testimonials() {

@@ -1,62 +1,79 @@
-"use client"
+"use client";
 
-import { useRef } from "react"
-import { motion, useScroll, useTransform } from "motion/react"
-import Card from "@/components/ui/card"
-import { Users, Clock, BarChart3, Calendar, MessageSquare, FileText, Shield, Zap } from "lucide-react"
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { Card } from "@/components/ui/card";
+import {
+  Users,
+  Clock,
+  BarChart3,
+  Calendar,
+  MessageSquare,
+  FileText,
+  Shield,
+  Zap,
+} from "lucide-react";
 
 export default function Features() {
-  const containerRef = useRef<HTMLElement>(null)
+  const containerRef = useRef<HTMLElement>(null);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"],
-  })
+  });
 
-  const y = useTransform(scrollYProgress, [0, 1], [100, -100])
+  const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
 
   const features = [
     {
       icon: <Users className="text-[#2563EB]" size={24} />,
       title: "Employee Profiles",
-      description: "Comprehensive employee profiles with all relevant information in one place.",
+      description:
+        "Comprehensive employee profiles with all relevant information in one place.",
     },
     {
       icon: <Clock className="text-[#10B981]" size={24} />,
       title: "Time Tracking",
-      description: "Accurate time tracking and attendance management with automated reports.",
+      description:
+        "Accurate time tracking and attendance management with automated reports.",
     },
     {
       icon: <BarChart3 className="text-[#8B5CF6]" size={24} />,
       title: "Performance Analytics",
-      description: "Track and analyze employee performance with customizable metrics.",
+      description:
+        "Track and analyze employee performance with customizable metrics.",
     },
     {
       icon: <Calendar className="text-[#F43F5E]" size={24} />,
       title: "Leave Management",
-      description: "Streamlined leave request and approval process with calendar integration.",
+      description:
+        "Streamlined leave request and approval process with calendar integration.",
     },
     {
       icon: <MessageSquare className="text-[#14B8A6]" size={24} />,
       title: "Team Communication",
-      description: "Built-in messaging and announcement system for effective team communication.",
+      description:
+        "Built-in messaging and announcement system for effective team communication.",
     },
     {
       icon: <FileText className="text-[#F59E0B]" size={24} />,
       title: "Document Management",
-      description: "Secure storage and management of employee documents and contracts.",
+      description:
+        "Secure storage and management of employee documents and contracts.",
     },
     {
       icon: <Shield className="text-[#EF4444]" size={24} />,
       title: "Role-based Access",
-      description: "Granular access control based on roles and responsibilities.",
+      description:
+        "Granular access control based on roles and responsibilities.",
     },
     {
       icon: <Zap className="text-[#2563EB]" size={24} />,
       title: "Workflow Automation",
-      description: "Automate repetitive HR tasks and approval workflows to save time.",
+      description:
+        "Automate repetitive HR tasks and approval workflows to save time.",
     },
-  ]
+  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -66,7 +83,7 @@ export default function Features() {
         staggerChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -77,10 +94,14 @@ export default function Features() {
         duration: 0.5,
       },
     },
-  }
+  };
 
   return (
-    <section id="features" ref={containerRef} className="py-24 bg-white relative overflow-hidden">
+    <section
+      id="features"
+      ref={containerRef}
+      className="py-24 bg-white relative overflow-hidden"
+    >
       {/* Background elements */}
       <motion.div
         style={{ y }}
@@ -103,8 +124,8 @@ export default function Features() {
             Powerful features to transform your HR operations
           </h2>
           <p className="text-lg text-[#374151]">
-            Our comprehensive suite of tools helps you manage your workforce efficiently and boost productivity across
-            your organization.
+            Our comprehensive suite of tools helps you manage your workforce
+            efficiently and boost productivity across your organization.
           </p>
         </motion.div>
 
@@ -125,7 +146,9 @@ export default function Features() {
                 <div className="w-12 h-12 rounded-lg bg-[#F9FAFB] flex items-center justify-center mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold text-[#111827] mb-2">{feature.title}</h3>
+                <h3 className="text-xl font-semibold text-[#111827] mb-2">
+                  {feature.title}
+                </h3>
                 <p className="text-[#374151]">{feature.description}</p>
               </Card>
             </motion.div>
@@ -133,5 +156,5 @@ export default function Features() {
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

@@ -17,19 +17,19 @@ export default function EmployeeDashboardLayout({ children }: { children: ReactN
     {
       name: 'Dashboard',
       icon: Users,
-      path: '/employeedashboard', // Points to the main dashboard page (Active Tasks)
+      path: '/employeeDashboard/dashboard', // Points to the main dashboard page (Active Tasks)
       description: 'Your active tasks and shift status',
     },
     {
       name: 'Task History',
       icon: CheckSquare,
-      path: '/employeedashboard/task', // Points to the task history list page
+      path: '/employeeDashboard/task', // Points to the task history list page
       description: 'Review past and current tasks',
     },
     {
       name: 'Shift History',
       icon: Calendar,
-      path: '/employeedashboard/shift', // Points to the shift history page
+      path: '/employeeDashboard/shift', // Points to the shift history page
       description: 'Overview of your past shifts',
     },
   ];
