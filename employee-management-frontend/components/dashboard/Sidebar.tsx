@@ -1,38 +1,29 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Users, Calendar, CheckSquare, ChevronLeft, LogOut } from 'lucide-react';
+import {  ChevronLeft, LogOut, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+
+
+interface items {
+  name: string;
+  icon: LucideIcon;
+  path: string;
+  description: string;
+}
 
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  menuItem:items[]
 }
 
-const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
+const Sidebar = ({ isOpen, onToggle,menuItem }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const menuItems = [
-    {
-      name: 'Employees',
-      icon: Users,
-      path: '/adminDashboard/employees',
-      description: 'Manage team members'
-    },
-    {
-      name: 'Tasks',
-      icon: CheckSquare,
-      path: '/adminDashboard/tasks',
-      description: 'Track assignments'
-    },
-    {
-      name: 'Shifts',
-      icon: Calendar,
-      path: '/adminDashboard/shifts',
-      description: 'Schedule overview'
-    },
-  ];
+  const menuItems = menuItem;
 
   const isActive = (itemPath: string) => {
     if (itemPath === '/dashboard/employees') {
