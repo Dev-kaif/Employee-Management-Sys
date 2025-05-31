@@ -17,19 +17,19 @@ const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     {
       name: 'Employees',
       icon: Users,
-      path: '/dashboard/employees',
+      path: '/adminDashboard/employees',
       description: 'Manage team members'
     },
     {
       name: 'Tasks',
       icon: CheckSquare,
-      path: '/dashboard/tasks',
+      path: '/adminDashboard/tasks',
       description: 'Track assignments'
     },
     {
       name: 'Shifts',
       icon: Calendar,
-      path: '/dashboard/shifts',
+      path: '/adminDashboard/shifts',
       description: 'Schedule overview'
     },
   ];

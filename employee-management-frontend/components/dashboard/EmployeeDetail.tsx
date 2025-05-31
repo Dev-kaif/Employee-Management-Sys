@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog'; // Added DialogFooter, DialogDescription
 
 import {
   ArrowLeft,
@@ -12,6 +13,7 @@ import {
   Building2,
   User,
   CheckSquare,
+  AlertCircle,
 } from "lucide-react";
 import axios from "@/lib/axios";
 import Button from "@/components/ui/button";
@@ -69,7 +71,9 @@ const EmployeeDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isEdited, setIsEdited] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Employee>>({});
-
+    const [employeeToDelete, setEmployeeToDelete] = useState<{ id: string; name: string } | null>(null); // New state to store employee to delete
+      const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // New state for delete modal
+    
   useEffect(() => {
     if (!id) return;
 
@@ -149,6 +153,34 @@ const EmployeeDetail = () => {
     }
   };
 
+  const handleDeleteEmployee = (id: string, name: string) => {
+    setEmployeeToDelete({ id, name });
+    setIsDeleteModalOpen(true);
+  };
+
+    // Function to perform the actual deletion after confirmation
+    const confirmDelete = async () => {
+      if (!employeeToDelete) return; // Should not happen if modal is open
+  
+      try {
+        await axios.delete(`${Backend_Url}/api/employees/${employeeToDelete.id}`);
+        setIsDeleteModalOpen(false); // Close the modal
+        setEmployeeToDelete(null); // Clear employee to delete
+        
+        toast({
+          title: 'Employee deleted',
+          description: `${employeeToDelete.name} has been removed from the team.`,
+        });
+        router.push("/adminDashboard/employees")
+      } catch (error: any) {
+        toast({
+          title: 'Error deleting employee',
+          description: error.response?.data?.message || 'Please try again later.',
+          variant: 'destructive',
+        });
+      }
+    };
+
   if (loading) {
     return (
       <div className="animate-fade-in">
@@ -165,7 +197,7 @@ const EmployeeDetail = () => {
         <h3 className="text-lg font-medium text-text mb-2">
           Employee not found
         </h3>
-        <Button onClick={() => router.push("/dashboard/employees")}>
+        <Button onClick={() => router.push("/adminDashboard/employees")}>
           Back to Employees
         </Button>
       </div>
@@ -177,7 +209,7 @@ const EmployeeDetail = () => {
       <div className="flex items-center gap-4 mb-6">
         <Button
           variant="outline"
-          onClick={() => router.push("/dashboard/employees")}
+          onClick={() => router.push("/adminDashboard/employees")}
           className="flex items-center gap-2"
         >
           <ArrowLeft size={16} />
@@ -398,18 +430,20 @@ const EmployeeDetail = () => {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push("/dashboard/tasks")}
+                onClick={() => router.push("/adminDashboard/tasks")}
               >
                 Assign New Task
               </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => router.push("/dashboard/shifts")}
+                onClick={() => router.push("/adminDashboard/shifts")}
               >
                 View Schedule
               </Button>
               <Button
+                onClick={() => handleDeleteEmployee(id, employee.username)} // Calls the new handler
+
                 variant="outline"
                 className="w-full justify-start text-error border-error hover:bg-error hover:text-white"
               >
@@ -419,6 +453,29 @@ const EmployeeDetail = () => {
           </div>
         </div>
       </div>
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="bg-surface sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-error">
+              <AlertCircle size={20} /> Confirm Deletion
+            </DialogTitle>
+            <DialogDescription className="mt-2">
+              Are you sure you want to delete **{employeeToDelete?.name}**? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={confirmDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
