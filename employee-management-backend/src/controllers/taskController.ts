@@ -177,9 +177,10 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
           task.completedAt = new Date();
         }
       } else {
-        return res.status(400).json({
+        res.status(400).json({
           message: `Cannot change status from "${currentStatus}" to "completed".`,
         });
+        return;
       }
     } else if (newStatus === "assigned" || newStatus === "pending") {
       task.status = newStatus;
@@ -188,7 +189,8 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
         task.completedAt = null;
       }
     } else {
-      return res.status(400).json({ message: "Invalid status provided." });
+      res.status(400).json({ message: "Invalid status provided." });
+      return;
     }
 
     await task.save();
@@ -197,7 +199,8 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error("Error updating task status:", err);
     if (err.name === "CastError") {
-      return res.status(400).json({ message: "Invalid task ID format." });
+      res.status(400).json({ message: "Invalid task ID format." });
+      return;
     }
     res.status(500).json({ message: "Server error", error: err.message });
   }
