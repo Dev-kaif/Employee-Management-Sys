@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "motion/react" 
 import { Menu, X } from "lucide-react"
 import Button from "@/components/ui/button"
 import Logo from "@/components/ui/logo"
 
-export default function Navbar() {
+interface NavbarProps {
+  isLoggedIn: boolean;
+  userRole: string | null; // userRole is accepted but not directly used for this specific change
+}
+
+export default function Navbar({ isLoggedIn, userRole }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter()
@@ -30,6 +35,13 @@ export default function Navbar() {
 
   const handleLogin = () => router.push("/login")
   const handleSignup = () => router.push("/signup")
+  const handleDashboardRedirect = () => {
+    if(userRole=="admin"){
+      router.push('/adminDashboard');
+    }else{
+      router.push('/employeeDashboard');
+    }
+  } 
 
   return (
     <>
@@ -44,7 +56,6 @@ export default function Navbar() {
         <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
           <Logo />
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
               <a
@@ -58,22 +69,28 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={handleLogin}>
-              Log in
-            </Button>
-            <Button size="sm" onClick={handleSignup}>
-              Sign up
-            </Button>
+            {isLoggedIn ? (
+              <button className="bg-purple-500 text-white h-full w-fit rounded-md px-4 py-2" onClick={handleDashboardRedirect}>
+                Go to Dashboard
+              </button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={handleLogin}>
+                  Log in
+                </Button>
+                <Button size="sm" onClick={handleSignup}>
+                  Sign up
+                </Button>
+              </>
+            )}
           </div>
 
-          {/* Mobile menu button */}
           <button className="md:hidden text-[#111827]" onClick={() => setMobileMenuOpen(true)}>
             <Menu size={24} />
           </button>
         </div>
       </motion.header>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -105,12 +122,20 @@ export default function Navbar() {
               </nav>
 
               <div className="mt-auto flex flex-col space-y-4 pt-6">
-                <Button variant="outline" fullWidth onClick={handleLogin}>
-                  Log in
-                </Button>
-                <Button fullWidth onClick={handleSignup}>
-                  Sign up
-                </Button>
+                {isLoggedIn ? (
+                  <Button fullWidth onClick={() => { handleDashboardRedirect(); setMobileMenuOpen(false); }}>
+                    Dashboard
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" fullWidth onClick={() => { handleLogin(); setMobileMenuOpen(false); }}>
+                      Log in
+                    </Button>
+                    <Button fullWidth onClick={() => { handleSignup(); setMobileMenuOpen(false); }}>
+                      Sign up
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

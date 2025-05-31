@@ -6,9 +6,14 @@ import Button from "@/components/ui/button"
 import { ArrowRight, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-export default function Hero() {
+interface HeroProps {
+  isLoggedIn: boolean;
+  userRole: string | null;
+}
+
+export default function Hero({ isLoggedIn, userRole }: HeroProps) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null)
-  const router = useRouter(); 
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -25,12 +30,22 @@ export default function Hero() {
     "Payroll integration",
   ]
 
+  const handleCtaClick = () => {
+    if (isLoggedIn) {
+      if(userRole=="admin"){
+        router.push('/adminDashboard');
+      }else{
+        router.push('/employeeDashboard');
+      }
+    } else {
+      router.push('/signup');
+    }
+  };
+
   return (
     <section ref={containerRef} className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden">
-      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#F9FAFB] to-white -z-10" />
 
-      {/* Background pattern */}
       <div className="absolute inset-0 opacity-[0.03] -z-10">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -85,12 +100,20 @@ export default function Hero() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="flex flex-wrap gap-4"
             >
-              <Button onClick={() => router.push('/signup')} size="lg" icon={<ArrowRight size={18} />} iconPosition="right">
-                Get Started
-              </Button>
-              <Button size="lg" variant="outline">
-                Book a Demo
-              </Button>
+              {isLoggedIn ? (
+                <Button onClick={handleCtaClick} size="lg" icon={<ArrowRight size={18} />} iconPosition="right">
+                  Continue to Dashboard
+                </Button>
+              ) : (
+                <>
+                  <Button onClick={handleCtaClick} size="lg" icon={<ArrowRight size={18} />} iconPosition="right">
+                    Get Started
+                  </Button>
+                  <Button size="lg" variant="outline">
+                    Book a Demo
+                  </Button>
+                </>
+              )}
             </motion.div>
 
             <motion.div
@@ -127,7 +150,6 @@ export default function Hero() {
               </div>
             </motion.div>
 
-            {/* Feature highlights */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
