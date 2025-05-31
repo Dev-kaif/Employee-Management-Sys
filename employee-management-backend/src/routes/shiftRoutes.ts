@@ -9,7 +9,7 @@ router.use(authenticate);
 
 // Employees
 router.post('/start', startShift);
-router.post('/end/:id', endShift);
+router.put('/end/:id', endShift);
 router.get('/my/:id', getShiftById);
 
 // Admin
