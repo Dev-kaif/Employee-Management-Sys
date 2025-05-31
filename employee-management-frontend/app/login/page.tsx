@@ -33,9 +33,10 @@ export default function LoginPage() {
       localStorage.setItem("token", res.data.token);
       alert("Login successful");
 
-      window.location.href = "/dashboard";
+      window.location.href = "/adminDashboard";
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
+      alert(err.response?.data?.message || "Login failed");
     } finally {
       setIsSubmitting(false);
     }

@@ -14,30 +14,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = typeof window !== 'undefined' && localStorage.getItem('token');
     if (!token) {
-      router.push('/'); // or '/login' based on your routing
+      router.push('/');
     }
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex w-full">
+    <div className="min-h-screen bg-gray-50 flex w-full overflow-hidden">
       {/* Sidebar with animation */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
             key="sidebar"
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -100, opacity: 0 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 256, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="w-64"
+            className="h-full"
           >
             <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col">
+      <motion.div
+        key="content"
+        className="flex-1 flex flex-col"
+        initial={false}
+        animate={{
+          paddingLeft: sidebarOpen ? 0 : 0, 
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+      >
         {/* Header */}
         <header className="bg-surface border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -58,9 +65,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-6 animate-fade-in">{children}</main>
-      </div>
+        {/* Page content */}
+        <motion.main
+          key="main-content"
+          className="flex-1 p-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.3 }}
+        >
+          {children}
+        </motion.main>
+      </motion.div>
     </div>
   );
 }

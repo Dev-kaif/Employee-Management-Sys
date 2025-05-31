@@ -158,7 +158,7 @@ export default function SignupPage() {
 
       localStorage.setItem("token", res.data.token);
       alert("Signup successful!");
-      window.location.href = "/dashboard";
+      window.location.href = "/adminDashboard";
     } catch (error: any) {
       alert(error.response?.data?.message || "Signup failed");
     } finally {
