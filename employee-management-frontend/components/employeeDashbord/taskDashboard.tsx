@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { motion } from "motion/react"; // Using framer-motion as suggested earlier
+import { motion } from "motion/react";
 import TaskCard from "@/components/ui/taskCard";
 import { dashboardAPI } from "@/lib/api"; // Import your API client
 import { Task, Employee } from "@/lib/types"; // Import Task and Employee types
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import MyLoader from "@/components/ui/loader";
+import MyLoader from "@/components/ui/loader"; // Your loader component
 
 const TasksDashboardPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -29,24 +29,24 @@ const TasksDashboardPage: React.FC = () => {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
+      // Fetch both tasks 
       const [tasksData] = await Promise.all([
         dashboardAPI.getTasks(),
       ]);
-      console.log(tasksData);
+      console.log("Fetched Tasks:", tasksData);
       
       setTasks(tasksData);
     } catch (error: any) {
-      console.error("Failed to fetch tasks or employees:", error);
       toast({
         title: "Error",
         description:
-          error.response?.data?.message || "Failed to load tasks or employees.",
+          error.response?.data?.message || "Failed to load tasks.",
         variant: "destructive",
       });
     } finally {
         setLoading(false);
     }
-  }, [toast]);
+  }, [toast]); 
 
   useEffect(() => {
     fetchTasks();
@@ -55,11 +55,7 @@ const TasksDashboardPage: React.FC = () => {
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.assignedTo &&
-        task.assignedTo.username
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())); // Check for assignedTo existence
+      task.description?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus =
       statusFilter === "all" || task.status === statusFilter;
@@ -127,6 +123,11 @@ const TasksDashboardPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
+                {/* IMPORTANT: The TaskCard component must also be updated to handle
+                  task.assignedTo as a string ID and perform its own lookup
+                  using the 'employees' array (or receive the full Employee object
+                  as an additional prop if you prefer).
+                */}
                 <TaskCard task={task} />
               </motion.div>
             ))

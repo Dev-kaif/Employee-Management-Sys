@@ -45,11 +45,21 @@ const ShiftsPage = () => {
     fetchShiftsAndEmployees();
   }, [toast]);
 
+  // Helper function to get employee details by ID
+  const getEmployeeDetails = (employeeId: string): Employee | undefined => {
+    return employees.find(emp => emp._id === employeeId);
+  };
+
   const filteredShifts = shifts.filter(shift => {
     const shiftDate = new Date(shift.startTime).toISOString().split('T')[0];
     const matchesDate = !dateFilter || shiftDate === dateFilter;
-    const matchesEmployee = employeeFilter === 'all' || shift.employee?._id === employeeFilter;
-    const matchesDepartment = departmentFilter === 'all' || shift.employee?.department === departmentFilter;
+    
+    // Corrected: Compare shift.employee (which is a string ID) directly with employeeFilter
+    const matchesEmployee = employeeFilter === 'all' || shift.employee === employeeFilter;
+    
+    // For department filter, we need to look up the employee details
+    const employee = getEmployeeDetails(shift.employee);
+    const matchesDepartment = departmentFilter === 'all' || employee?.department === departmentFilter;
     
     return matchesDate && matchesEmployee && matchesDepartment;
   });
@@ -195,64 +205,75 @@ const ShiftsPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-text-secondary">Total Hours</p>
-                  <p className="text-lg font-semibold text-text">{calculateTotalHoursForDay(dayShifts).toFixed(1)}h</p> {/* Updated */}
+                  <p className="text-lg font-semibold text-text">{calculateTotalHoursForDay(dayShifts).toFixed(1)}h</p>
                 </div>
               </div>
             </div>
 
             <div className="p-4">
               <div className="space-y-3">
-                {dayShifts.map((shift, shiftIndex) => (
-                  <div 
-                    key={shift._id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow animate-fade-in"
-                    style={{ animationDelay: `${(dateIndex * 0.1) + (shiftIndex * 0.05)}s` }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">
-                          {shift.employee?.username ? shift.employee.username.split(' ').map(n => n[0]).join('') : 'N/A'}
-                        </span>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium text-text">{shift.employee?.username || 'Unknown Employee'}</h4>
-                        <p className="text-sm text-text-secondary">{shift.employee?.designation || 'N/A'} • {shift.employee?.department || 'N/A'}</p>
-                      </div>
-                    </div>
+                {dayShifts.map((shift, shiftIndex) => {
+                  // Lookup employee details for display
+                  const employee = getEmployeeDetails(shift.employee);
 
-                    <div className="flex items-center gap-6">
-                      <div className="text-center">
-                        <div className="flex items-center gap-2 text-text-secondary text-sm">
-                          <Clock size={14} />
-                          <span>{formatTime(shift.startTime)} - {shift.endTime ? formatTime(shift.endTime) : 'Ongoing'}</span>
+                  return (
+                    <div 
+                      key={shift._id}
+                      className="p-4 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow animate-fade-in"
+                      style={{ animationDelay: `${(dateIndex * 0.1) + (shiftIndex * 0.05)}s` }}
+                    >
+                      <div className="flex items-center justify-between gap-4"> {/* Main content row */}
+                        {/* Left section: Employee Info */}
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                            <span className="text-white font-semibold text-sm">
+                              {employee?.username ? employee.username.split(' ').map(n => n[0]).join('') : 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-text">{employee?.username || 'Unknown Employee'}</h4>
+                            <p className="text-sm text-text-secondary">{employee?.designation || 'N/A'} • {employee?.department || 'N/A'}</p>
+                          </div>
                         </div>
-                        {typeof shift.totalHours === 'number' && ( // Updated: Check for stored totalHours
-                          <p className="text-text font-medium text-sm mt-1">
-                            {shift.totalHours.toFixed(1)}h worked
-                          </p>
-                        )}
-                        {!shift.endTime && shift.startTime && ( 
-                          <p className="font-medium text-sm mt-1 text-text-secondary">
-                            Ongoing ({getShiftDuration(shift).toFixed(1)}h so far)
-                          </p>
-                        )}
+
+                        {/* Right section: Time, Duration, Status Badge */}
+                        <div className="flex items-center gap-6">
+                          <div className="text-left min-w-[120px]">
+                            <div className="flex items-center gap-2 text-text-secondary text-sm">
+                              <Clock size={14} />
+                              <span>{formatTime(shift.startTime)} - {shift.endTime ? formatTime(shift.endTime) : 'Ongoing'}</span>
+                            </div>
+                            {(typeof shift.totalHours === 'number' && shift.totalHours > 0) && (
+                              <p className="text-text font-medium text-sm mt-1">
+                                {shift.totalHours.toFixed(1)}h worked
+                              </p>
+                            )}
+                            {!shift.endTime && shift.startTime && (
+                              <p className="font-medium text-sm mt-1 text-text-secondary">
+                                Ongoing ({getShiftDuration(shift).toFixed(1)}h so far)
+                              </p>
+                            )}
+                          </div>
+
+                          <div> {/* Status Badge */}
+                            <Badge className={getStatusColor(getShiftStatus(shift))}>
+                              {getShiftStatus(shift)}
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
 
-                      <Badge className={getStatusColor(getShiftStatus(shift))}>
-                        {getShiftStatus(shift)}
-                      </Badge>
-
+                      {/* Work Summary - now on its own line for uniformity */}
                       {shift.workSummary && (
-                        <div className="max-w-32">
-                          <p className="text-xs text-text-secondary truncate" title={shift.workSummary}>
-                            {shift.workSummary}
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <p className="text-xs text-text-secondary line-clamp-2">
+                            <span className="font-semibold text-text">Summary:</span> {shift.workSummary}
                           </p>
                         </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -13,7 +13,7 @@ export interface Employee {
 
 export interface Shift {
   _id: string;
-  employee: Employee; 
+  employee: string; 
   startTime: string;
   endTime?: string;
   workSummary?: string;
@@ -26,8 +26,8 @@ export interface Task {
   _id: string; 
   title: string;
   description?: string;
-  assignedTo: Employee;
-  assignedBy: Employee;  
+  assignedTo: string;
+  assignedBy: string;  
   dueDate: string;
   scheduledFor?: string;
   isScheduled: boolean;

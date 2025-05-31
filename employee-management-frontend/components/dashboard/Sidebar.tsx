@@ -1,10 +1,8 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import {  ChevronLeft, LogOut, LucideIcon } from 'lucide-react';
+import { ChevronLeft, LogOut, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-
-
 
 interface items {
   name: string;
@@ -16,20 +14,32 @@ interface items {
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
-  menuItem:items[]
+  menuItem: items[];
 }
 
-const Sidebar = ({ isOpen, onToggle,menuItem }: SidebarProps) => {
+const Sidebar = ({ isOpen, onToggle, menuItem }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const menuItems = menuItem;
+  const menuItems = menuItem; // Use the prop directly
 
   const isActive = (itemPath: string) => {
-    if (itemPath === '/dashboard/employees') {
-      return pathname.startsWith(itemPath) || pathname === '/dashboard';
+    // 1. Standard check: if the current path starts with the item's path
+    if (pathname.startsWith(itemPath)) {
+      return true;
     }
-    return pathname.startsWith(itemPath);
+
+    // 2. Special handling for default active items when on their parent dashboard route
+    // If the item is '/employeeDashboard/dashboard' AND the current path is '/employeeDashboard'
+    if (itemPath === '/employeeDashboard/dashboard' && pathname === '/employeeDashboard') {
+      return true;
+    }
+    // If the item is '/adminDashboard/employees' AND the current path is '/adminDashboard'
+    if (itemPath === '/adminDashboard/employees' && pathname === '/adminDashboard') {
+      return true;
+    }
+
+    return false; // Not active otherwise
   };
 
   const handleLogout = () => {
@@ -61,8 +71,7 @@ const Sidebar = ({ isOpen, onToggle,menuItem }: SidebarProps) => {
               </div>
             </div>
 
-            {/* Changed nav to be relative for absolute positioning of the background */}
-            <nav className="relative space-y-2"> 
+            <nav className="relative space-y-2">
               {menuItems.map((item, index) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
@@ -71,7 +80,6 @@ const Sidebar = ({ isOpen, onToggle,menuItem }: SidebarProps) => {
                   <motion.button
                     key={item.name}
                     onClick={() => router.push(item.path)}
-                    // Removed onMouseEnter/Leave
                     className={`relative z-10 w-full flex items-start gap-3 p-3 rounded-lg transition-all duration-200 group
                       ${active ? 'text-white' : 'hover:bg-gray-100 text-text-secondary hover:text-text'}
                     `}
@@ -80,7 +88,6 @@ const Sidebar = ({ isOpen, onToggle,menuItem }: SidebarProps) => {
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    {/* The animated background is now only rendered if 'active' */}
                     {active && (
                       <motion.div
                         layoutId="sidebar-active-item" // Unique ID for the animation

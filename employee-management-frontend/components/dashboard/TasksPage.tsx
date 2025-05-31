@@ -48,7 +48,7 @@ const TasksPage = () => {
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assignedTo: "",
+    assignedTo: "", // This is now a string ID
     dueDate: "",
     scheduledFor: "",
   });
@@ -88,16 +88,26 @@ const TasksPage = () => {
     fetchData();
   }, [toast, isCreated, isDeleting]);
 
+  // Helper function to get employee details by ID
+  const getEmployeeDetails = (employeeId: string): Employee | undefined => {
+    return employees.find(emp => emp._id === employeeId);
+  };
+
   const filteredTasks = tasks.filter((task) => {
-    const assignedToName = task.assignedTo?.username?.toLowerCase() || "";
+    // Look up employee details for filtering by name
+    const assignedToEmployee = getEmployeeDetails(task.assignedTo);
+    const assignedToName = assignedToEmployee?.username?.toLowerCase() || "";
+
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assignedToName.includes(searchTerm.toLowerCase());
+    
     const matchesStatus =
       statusFilter === "all" || task.status === statusFilter;
+    
     const matchesAssignee =
-      assigneeFilter === "all" || task.assignedTo?._id === assigneeFilter;
+      assigneeFilter === "all" || task.assignedTo === assigneeFilter;
 
     return matchesSearch && matchesStatus && matchesAssignee;
   });
@@ -386,6 +396,8 @@ const TasksPage = () => {
 
       <div className="space-y-4">
         {filteredTasks.map((task, index) => {
+          // Look up assignee details for display
+          const assignedToEmployee = getEmployeeDetails(task.assignedTo);
           const deadlineStatus = getDeadlineStatus(task.dueDate);
           const isPastDeadline = deadlineStatus.isPastDeadline;
 
@@ -402,10 +414,10 @@ const TasksPage = () => {
                   </h3>
                   <p className="text-text-secondary mb-3">{task.description}</p>
 
-                  <div className="flex items-center gap-4 text-sm text-text-secondary">
+                  <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap"> {/* Added flex-wrap */}
                     <span className="flex items-center gap-1">
                       <User size={14} />
-                      {task.assignedTo?.username || "N/A"}
+                      {assignedToEmployee?.username || "N/A"} {/* Corrected: Use looked-up employee */}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar size={14} className={isPastDeadline ? "text-red-500" : ""} />
