@@ -33,29 +33,49 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/hooks/use-toast";
 import axios from "@/lib/axios";
 import { Backend_Url } from "@/config";
-import { Employee, Task } from "@/lib/types";
+import { Employee } from "@/lib/types";
+
+interface employee {
+  _id: string;
+  email: string;
+  username: string;
+}
+
+export interface Task {
+  _id: string;
+  title: string;
+  description?: string;
+  assignedTo: employee;
+  assignedBy: string;
+  dueDate: string;
+  scheduledFor?: string;
+  isScheduled: boolean;
+  status: "pending" | "assigned" | "in-progress" | "completed";
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const TasksPage = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
 
-  // Create Task Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    assignedTo: "", // This is now a string ID
+    assignedTo: "",
     dueDate: "",
     scheduledFor: "",
   });
   const [isCreated, setIsCreated] = useState(false);
-
-  // Delete Confirmation Dialog states
-  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] =
+    useState(false);
   const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
   const [taskToDeleteTitle, setTaskToDeleteTitle] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -67,7 +87,7 @@ const TasksPage = () => {
       setLoading(true);
       const [tasksResponse, employeesResponse] = await Promise.all([
         axios.get<Task[]>(`${Backend_Url}/api/tasks`),
-        axios.get<Employee[]>(`${Backend_Url}/api/employees`),
+        axios.get<employee[]>(`${Backend_Url}/api/employees`),
       ]);
       setTasks(tasksResponse.data);
       setEmployees(employeesResponse.data);
@@ -75,8 +95,7 @@ const TasksPage = () => {
       toast({
         title: "Error fetching data",
         description:
-          error.response?.data?.message ||
-          "Failed to load tasks or employees.",
+          error.response?.data?.message || "Failed to load tasks or employees.",
         variant: "destructive",
       });
     } finally {
@@ -88,26 +107,27 @@ const TasksPage = () => {
     fetchData();
   }, [toast, isCreated, isDeleting]);
 
-  // Helper function to get employee details by ID
-  const getEmployeeDetails = (employeeId: string): Employee | undefined => {
-    return employees.find(emp => emp._id === employeeId);
+  const getEmployeeDetails = (employeeId: string): employee | undefined => {
+    return employees.find((emp) => emp._id === employeeId);
   };
 
   const filteredTasks = tasks.filter((task) => {
-    // Look up employee details for filtering by name
-    const assignedToEmployee = getEmployeeDetails(task.assignedTo);
+    const assignedToEmployee = task.assignedTo
+      ? getEmployeeDetails(task.assignedTo._id)
+      : undefined;
+
     const assignedToName = assignedToEmployee?.username?.toLowerCase() || "";
 
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assignedToName.includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus =
       statusFilter === "all" || task.status === statusFilter;
-    
+
     const matchesAssignee =
-      assigneeFilter === "all" || task.assignedTo === assigneeFilter;
+      assigneeFilter === "all" || task.assignedTo?._id === assigneeFilter;
 
     return matchesSearch && matchesStatus && matchesAssignee;
   });
@@ -137,8 +157,17 @@ const TasksPage = () => {
         isScheduled: isScheduled,
       };
 
-      const response = await axios.post(`${Backend_Url}/api/tasks/assign`, payload);
-      setNewTask({ title: "", description: "", assignedTo: "", dueDate: "", scheduledFor: "" });
+      const response = await axios.post(
+        `${Backend_Url}/api/tasks/assign`,
+        payload
+      );
+      setNewTask({
+        title: "",
+        description: "",
+        assignedTo: "",
+        dueDate: "",
+        scheduledFor: "",
+      });
       setIsCreateModalOpen(false);
 
       toast({
@@ -164,10 +193,11 @@ const TasksPage = () => {
 
   const handleConfirmDelete = async () => {
     if (!taskToDeleteId) return;
-
     setIsDeleting(true);
     try {
-      const response = await axios.delete(`${Backend_Url}/api/tasks/${taskToDeleteId}`);
+      const response = await axios.delete(
+        `${Backend_Url}/api/tasks/${taskToDeleteId}`
+      );
       toast({
         title: "Task Deleted",
         description: response.data.message || "Task removed successfully.",
@@ -176,10 +206,11 @@ const TasksPage = () => {
       setTaskToDeleteId(null);
       setTaskToDeleteTitle("");
     } catch (error: any) {
-      console.error("Failed to delete task:", error);
       toast({
         title: "Deletion Failed",
-        description: error.response?.data?.message || "Failed to delete the task. Please try again.",
+        description:
+          error.response?.data?.message ||
+          "Failed to delete the task. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -188,8 +219,8 @@ const TasksPage = () => {
   };
 
   const getStatusColor = (status: string, isPastDeadline: boolean) => {
-    if (isPastDeadline) {
-      return "bg-red-600 text-white"; // Red for passed deadline
+    if (isPastDeadline && status !== "completed") { // Only show red if not completed
+      return "bg-red-600 text-white";
     }
     switch (status) {
       case "completed":
@@ -205,19 +236,22 @@ const TasksPage = () => {
     }
   };
 
-  // --- New: Helper function to calculate days left/past deadline ---
-  const getDeadlineStatus = (dueDate: string) => {
+  const getDeadlineStatus = (dueDate: string, status: string) => {
+    if (status.toLowerCase() === "completed") {
+      return { text: "Completed", isPastDeadline: false }; // Indicate completion
+    }
+
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize today to midnight
-
+    today.setHours(0, 0, 0, 0);
     const deadline = new Date(dueDate);
-    deadline.setHours(0, 0, 0, 0); // Normalize deadline to midnight
-
+    deadline.setHours(0, 0, 0, 0);
     const diffTime = deadline.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // Calculate days, rounding up
-
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays < 0) {
-      return { text: `Passed Deadline (${Math.abs(diffDays)} days ago)`, isPastDeadline: true };
+      return {
+        text: `Passed Deadline (${Math.abs(diffDays)} days ago)`,
+        isPastDeadline: true,
+      };
     } else if (diffDays === 0) {
       return { text: "Due Today!", isPastDeadline: false };
     } else if (diffDays === 1) {
@@ -226,7 +260,6 @@ const TasksPage = () => {
       return { text: `${diffDays} days left`, isPastDeadline: false };
     }
   };
-  // --- End of new helper function ---
 
   if (loading) {
     return (
@@ -396,9 +429,8 @@ const TasksPage = () => {
 
       <div className="space-y-4">
         {filteredTasks.map((task, index) => {
-          // Look up assignee details for display
-          const assignedToEmployee = getEmployeeDetails(task.assignedTo);
-          const deadlineStatus = getDeadlineStatus(task.dueDate);
+          const assignedToEmployee = getEmployeeDetails(task.assignedTo._id);
+          const deadlineStatus = getDeadlineStatus(task.dueDate, task.status);
           const isPastDeadline = deadlineStatus.isPastDeadline;
 
           return (
@@ -414,25 +446,67 @@ const TasksPage = () => {
                   </h3>
                   <p className="text-text-secondary mb-3">{task.description}</p>
 
-                  <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap"> {/* Added flex-wrap */}
+                  <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap">
+                    {" "}
+                    {/* Added flex-wrap */}
                     <span className="flex items-center gap-1">
                       <User size={14} />
-                      {assignedToEmployee?.username || "N/A"} {/* Corrected: Use looked-up employee */}
+                      {assignedToEmployee?.username || "N/A"}{" "}
+                      {/* Corrected: Use looked-up employee */}
                     </span>
+                    {/* Display Due Date / Completion Status */}
                     <span className="flex items-center gap-1">
-                      <Calendar size={14} className={isPastDeadline ? "text-red-500" : ""} />
-                      {/* Display Due Date with days left/passed status */}
-                      Complete By: {new Date(task.dueDate).toLocaleDateString()}
-                      {` (`}
-                      <span className={isPastDeadline ? "font-bold text-red-600" : "font-medium text-blue-600"}>
-                        {deadlineStatus.text}
-                      </span>
-                      {`)`}
+                      <Calendar
+                        size={14}
+                        className={isPastDeadline ? "text-red-500" : ""}
+                      />
+                      {task.status === "completed" ? (
+                        <>
+                          Completed By:{" "}
+                          {new Date(task.dueDate).toLocaleDateString()}
+                          {` (`}
+                          <span className="font-medium text-success">
+                            {deadlineStatus.text}
+                          </span>
+                          {`)`}
+                        </>
+                      ) : (
+                        <>
+                          Complete By:{" "}
+                          {new Date(task.dueDate).toLocaleDateString()}
+                          {` (`}
+                          <span
+                            className={
+                              isPastDeadline
+                                ? "font-bold text-red-600"
+                                : "font-medium text-blue-600"
+                            }
+                          >
+                            {deadlineStatus.text}
+                          </span>
+                          {`)`}
+                        </>
+                      )}
                     </span>
                     {task.scheduledFor && (
                       <span className="flex items-center gap-1">
                         <Calendar size={14} className="text-purple-500" />
-                        Planned Assignment: {new Date(task.scheduledFor).toLocaleDateString()}
+                        Planned Assignment:{" "}
+                        {new Date(task.scheduledFor).toLocaleDateString()}
+                      </span>
+                    )}
+                    {task.status === "completed" && task.startedAt && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} className="text-blue-500" />
+                        Started At:{" "}
+                        {new Date(task.startedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                    {task.status === "completed" && task.completedAt && (
+                      <span className="flex items-center gap-1">
+                        <CheckSquare size={14} className="text-green-500" />
+                        Completed At:{" "}
+                        {new Date(task.completedAt).toLocaleDateString()}
                       </span>
                     )}
                     <span className="flex items-center gap-1">
@@ -449,21 +523,25 @@ const TasksPage = () => {
               <div className="flex items-center justify-between">
                 {/* Status Badge - now conditional on deadline */}
                 <Badge className={getStatusColor(task.status, isPastDeadline)}>
-                  {isPastDeadline ? "Passed Deadline" : task.status.replace("-", " ")}
+                  {isPastDeadline && task.status !== "completed"
+                    ? "Passed Deadline"
+                    : task.status.replace("-", " ")}
                 </Badge>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-error border-error hover:bg-error hover:text-white"
-                    onClick={() => handleDeleteClick(task._id, task.title)}
-                    disabled={isDeleting}
-                  >
-                    <Trash2 size={16} className="mr-1" />
-                    Delete
-                  </Button>
-                </div>
+                {task.status !== "completed" && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-error border-error hover:bg-error hover:text-white"
+                      onClick={() => handleDeleteClick(task._id, task.title)}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 size={16} className="mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -481,12 +559,16 @@ const TasksPage = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteConfirmModalOpen} onOpenChange={setIsDeleteConfirmModalOpen}>
+      <Dialog
+        open={isDeleteConfirmModalOpen}
+        onOpenChange={setIsDeleteConfirmModalOpen}
+      >
         <DialogContent className="bg-surface sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the task " **{taskToDeleteTitle}** "? This action cannot be undone.
+              Are you sure you want to delete the task " **{taskToDeleteTitle}**
+              "? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -509,7 +591,7 @@ const TasksPage = () => {
               {isDeleting ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               ) : (
-                'Delete Task'
+                "Delete Task"
               )}
             </Button>
           </DialogFooter>
