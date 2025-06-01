@@ -4,6 +4,8 @@ A full-stack web application to manage employees, tasks, and shifts with secure 
 
 ---
 
+## Demo Video
+
 [![Watch the video](https://img.youtube.com/vi/Nz1Ougz_TDI/maxresdefault.jpg)](https://youtu.be/Nz1Ougz_TDI)
 
 ---
