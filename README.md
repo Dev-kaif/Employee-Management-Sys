@@ -4,15 +4,19 @@ A full-stack web application to manage employees, tasks, and shifts with secure 
 
 ---
 
+[![Watch the video](https://img.youtube.com/vi/Nz1Ougz_TDI/maxresdefault.jpg)](https://youtu.be/Nz1Ougz_TDI)
+
+---
+
 ## 🚀 Features
 
-* ✨ Smooth animations using **Framer Motion**
-* 🔐 JWT-based authentication & role-based access control
-* 📅 Shift scheduling & calendar view
-* 📊 Task assignment, status updates, and tracking
-* 🗄️ Admin & Employee dashboards
-* 📈 Reports & employee analytics (WIP)
-* 📱 Fully responsive UI with **Tailwind CSS**
+- ✨ Smooth animations using **Framer Motion**
+- 🔐 JWT-based authentication & role-based access control
+- 📅 Shift scheduling & calendar view
+- 📊 Task assignment, status updates, and tracking
+- 🗄️ Admin & Employee dashboards
+- 📈 Reports & employee analytics (WIP)
+- 📱 Fully responsive UI with **Tailwind CSS**
 
 ---
 
@@ -20,20 +24,20 @@ A full-stack web application to manage employees, tasks, and shifts with secure 
 
 ### Frontend
 
-* Next.js
-* React
-* Tailwind CSS
-* Framer Motion
-* Axios
+- Next.js
+- React
+- Tailwind CSS
+- Framer Motion
+- Axios
 
 ### Backend
 
-* Node.js
-* Express.js
-* MongoDB + Mongoose
-* JWT for auth
-* bcryptjs for password hashing
-* node-cron for scheduled tasks
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- JWT for auth
+- bcryptjs for password hashing
+- node-cron for scheduled tasks
 
 ---
 
@@ -64,8 +68,8 @@ employee-management-sys/
 
 ### Prerequisites
 
-* Node.js v14+
-* MongoDB
+- Node.js v14+
+- MongoDB
 
 ### Backend Setup
 
@@ -113,37 +117,37 @@ npm run dev
 
 ### Auth
 
-* POST `/api/auth/register`
-* POST `/api/auth/login`
+- POST `/api/auth/register`
+- POST `/api/auth/login`
 
 ### Employees
 
-* GET/POST `/api/employees`
-* PUT/DELETE `/api/employees/:id`
+- GET/POST `/api/employees`
+- PUT/DELETE `/api/employees/:id`
 
 ### Tasks
 
-* GET/POST `/api/tasks`
-* PUT/DELETE `/api/tasks/:id`
+- GET/POST `/api/tasks`
+- PUT/DELETE `/api/tasks/:id`
 
 ### Shifts
 
-* GET/POST `/api/shifts`
-* PUT/DELETE `/api/shifts/:id`
+- GET/POST `/api/shifts`
+- PUT/DELETE `/api/shifts/:id`
 
 ---
 
 ## 🔐 Auth & Roles
 
-* JWT-based stateless authentication
-* Middleware guards for Admin and Employee access
+- JWT-based stateless authentication
+- Middleware guards for Admin and Employee access
 
 ---
 
 ## 📆 Scheduled Jobs
 
-* Daily task summaries (node-cron)
-* Auto-shift archiving (planned)
+- Daily task summaries (node-cron)
+- Auto-shift archiving (planned)
 
 ---
 
