@@ -38,7 +38,11 @@ const ShiftHistoryPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const fetchedShifts = await dashboardAPI.getShifts();
-      setShifts(fetchedShifts);
+      // Sort shifts by startTime in descending order (recent date up)
+      const sortedShifts = fetchedShifts.sort((a, b) => {
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+      });
+      setShifts(sortedShifts);
     } catch (err: any) {
       console.error("Failed to fetch shift history:", err);
       setError(err.response?.data?.message || "Failed to load shift history.");
