@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Backend_Url } from "@/config";
-import { useToast } from "@/components/hooks/use-toast"; 
+import { useToast } from "@/components/hooks/use-toast";
+import { ArrowLeft } from "lucide-react";
 
 interface FormData {
   fullName: string;
@@ -39,20 +40,19 @@ interface FormErrors {
   agreeToTerms?: string;
 }
 
-// Define variants for the staggering effect
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      delayChildren: 0.1, // Delay before children start animating
-      staggerChildren: 0.08, // Delay between each child's animation
+      delayChildren: 0.1, 
+      staggerChildren: 0.08, 
     },
   },
 };
 
 const itemVariants = {
-  hidden: { y: 20, opacity: 0, filter: "blur(4px)" }, // Start with blur
+  hidden: { y: 20, opacity: 0, filter: "blur(4px)" }, 
   visible: {
     y: 0,
     opacity: 1,
@@ -178,7 +178,7 @@ export default function SignupPage() {
       toast({
         title: "Signup Failed",
         description: error.response?.data?.message || "An unexpected error occurred.",
-        variant: "destructive", 
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -186,7 +186,23 @@ export default function SignupPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-12">
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-12 relative">
+      {" "}
+      <div className="absolute top-10 left-10">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Link
+            href="/"
+            className="inline-flex items-center text-[#374151] hover:text-[#2563EB] transition-colors"
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Back to home
+          </Link>
+        </motion.div>
+      </div>
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -195,14 +211,12 @@ export default function SignupPage() {
         <h1 className="text-3xl font-bold text-center mb-2">
           Create Admin account
         </h1>
-        {/* Note about single admin per company */}
         <p className="text-sm text-center text-text-secondary mb-6">
           <span className="text-red-500 font-semibold">Important:</span> Only
           one admin can be registered per company. This account will manage your
           company's dashboard.
         </p>
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Apply variants to the container for staggering */}
           <motion.div
             className="grid grid-cols-1 sm:grid-cols-2 gap-4"
             variants={containerVariants}
@@ -292,8 +306,10 @@ export default function SignupPage() {
             </motion.div>
           </motion.div>
 
-          {/* These also need to be wrapped as motion.div items */}
-          <motion.div variants={itemVariants} className="flex items-center space-x-2">
+          <motion.div
+            variants={itemVariants}
+            className="flex items-center space-x-2"
+          >
             <input
               type="checkbox"
               name="agreeToTerms"
@@ -306,7 +322,9 @@ export default function SignupPage() {
             </label>
           </motion.div>
           {errors.agreeToTerms && (
-            <motion.p variants={itemVariants} className="text-red-500 text-sm">{errors.agreeToTerms}</motion.p>
+            <motion.p variants={itemVariants} className="text-red-500 text-sm">
+              {errors.agreeToTerms}
+            </motion.p>
           )}
 
           <motion.div variants={itemVariants}>
