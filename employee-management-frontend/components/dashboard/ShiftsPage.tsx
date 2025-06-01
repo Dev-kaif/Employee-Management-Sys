@@ -18,6 +18,7 @@ const ShiftsPage = () => {
   const [dateFilter, setDateFilter] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [currentLiveTime, setCurrentLiveTime] = useState(new Date()); // New state for live time updates
 
   const { toast } = useToast();
 
@@ -27,7 +28,7 @@ const ShiftsPage = () => {
         setLoading(true);
         const [shiftsResponse, employeesResponse] = await Promise.all([
           axios.get<Shift[]>(`${Backend_Url}/api/shifts`),
-          axios.get<Employee[]>(`${Backend_Url}/api/employees`) 
+          axios.get<Employee[]>(`${Backend_Url}/api/employees`)
         ]);
         setShifts(shiftsResponse.data);
         setEmployees(employeesResponse.data);
@@ -43,6 +44,13 @@ const ShiftsPage = () => {
     };
 
     fetchShiftsAndEmployees();
+
+    // Set up interval to update currentLiveTime every minute
+    const interval = setInterval(() => {
+      setCurrentLiveTime(new Date());
+    }, 60 * 1000); // Update every minute
+
+    return () => clearInterval(interval); // Clean up interval on unmount
   }, [toast]);
 
   // Helper function to get employee details by ID
@@ -53,14 +61,14 @@ const ShiftsPage = () => {
   const filteredShifts = shifts.filter(shift => {
     const shiftDate = new Date(shift.startTime).toISOString().split('T')[0];
     const matchesDate = !dateFilter || shiftDate === dateFilter;
-    
+
     // Corrected: Compare shift.employee (which is a string ID) directly with employeeFilter
     const matchesEmployee = employeeFilter === 'all' || shift.employee === employeeFilter;
-    
+
     // For department filter, we need to look up the employee details
     const employee = getEmployeeDetails(shift.employee);
     const matchesDepartment = departmentFilter === 'all' || employee?.department === departmentFilter;
-    
+
     return matchesDate && matchesEmployee && matchesDepartment;
   });
 
@@ -90,35 +98,38 @@ const ShiftsPage = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
-  const formatTime = (timeString: string) => {
+  const formatTime = (timeString: string | Date) => {
     const date = new Date(timeString);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const getShiftDuration = (shift: Shift) => {
-    if (typeof shift.totalHours === 'number') {
+    // If shift has totalHours and is completed, use it
+    if (typeof shift.totalHours === 'number' && shift.endTime) {
       return shift.totalHours;
     }
+    // If shift is ongoing (has startTime but no endTime), calculate duration from startTime to currentLiveTime
     if (shift.startTime && !shift.endTime) {
       const start = new Date(shift.startTime);
-      const now = new Date();
-      const diffMs = now.getTime() - start.getTime();
-      return Math.round(diffMs / (1000 * 60 * 60) * 10) / 10; // Calculate approximate ongoing hours
+      const diffMs = currentLiveTime.getTime() - start.getTime(); // Use currentLiveTime
+      const hours = diffMs / (1000 * 60 * 60);
+      return hours;
     }
-    return 0;
+    return 0; // Default for shifts with no start time or other edge cases
   };
 
   const calculateTotalHoursForDay = (dayShifts: Shift[]) => {
     return dayShifts.reduce((total, shift) => {
-      return total + (typeof shift.totalHours === 'number' ? shift.totalHours : 0);
+      // For completed shifts, use totalHours. For ongoing, calculate current duration.
+      return total + getShiftDuration(shift);
     }, 0);
   };
 
@@ -153,7 +164,7 @@ const ShiftsPage = () => {
               placeholder="Filter by date"
             />
           </div>
-          
+
           <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
             <SelectTrigger>
               <SelectValue placeholder="All Employees" />
@@ -189,7 +200,7 @@ const ShiftsPage = () => {
         {Object.entries(groupedShifts)
           .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
           .map(([date, dayShifts], dateIndex) => (
-          <div 
+          <div
             key={date}
             className="bg-surface rounded-lg border border-gray-200 animate-slide-up"
             style={{ animationDelay: `${dateIndex * 0.1}s` }}
@@ -215,9 +226,11 @@ const ShiftsPage = () => {
                 {dayShifts.map((shift, shiftIndex) => {
                   // Lookup employee details for display
                   const employee = getEmployeeDetails(shift.employee);
+                  const isOngoing = !shift.endTime;
+                  const currentDuration = getShiftDuration(shift);
 
                   return (
-                    <div 
+                    <div
                       key={shift._id}
                       className="p-4 rounded-lg border border-gray-200 hover:shadow-sm transition-shadow animate-fade-in"
                       style={{ animationDelay: `${(dateIndex * 0.1) + (shiftIndex * 0.05)}s` }}
@@ -241,16 +254,17 @@ const ShiftsPage = () => {
                           <div className="text-left min-w-[120px]">
                             <div className="flex items-center gap-2 text-text-secondary text-sm">
                               <Clock size={14} />
-                              <span>{formatTime(shift.startTime)} - {shift.endTime ? formatTime(shift.endTime) : 'Ongoing'}</span>
+                              <span>
+                                {formatTime(shift.startTime)} - {isOngoing ? 'Ongoing' : formatTime(shift.endTime as string)}
+                              </span>
                             </div>
-                            {(typeof shift.totalHours === 'number' && shift.totalHours > 0) && (
-                              <p className="text-text font-medium text-sm mt-1">
-                                {shift.totalHours.toFixed(1)}h worked
+                            {isOngoing ? (
+                              <p className="font-medium text-sm mt-1 text-warning">
+                                Active ({currentDuration.toFixed(1)}h so far)
                               </p>
-                            )}
-                            {!shift.endTime && shift.startTime && (
-                              <p className="font-medium text-sm mt-1 text-text-secondary">
-                                Ongoing ({getShiftDuration(shift).toFixed(1)}h so far)
+                            ) : (
+                              <p className="text-text font-medium text-sm mt-1">
+                                {currentDuration.toFixed(1)}h worked
                               </p>
                             )}
                           </div>

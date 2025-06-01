@@ -22,6 +22,7 @@ import Button from "@/components/ui/button";
 import { Label } from "@/components/ui/label"; 
 import { Badge } from "@/components/ui/badge"; 
 import MyLoader from "@/components/ui/loader";
+import { updateEmployee } from '../../../../../employee-management-backend/src/controllers/employeeController';
 
 const TaskDetailPage: React.FC = () => {
   const params = useParams();
@@ -33,6 +34,7 @@ const TaskDetailPage: React.FC = () => {
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isUpdatedStatus, setIsUpdatedStatus] = useState(false);
 
   const fetchTaskDetails = useCallback(async () => {
     try {
@@ -57,7 +59,7 @@ const TaskDetailPage: React.FC = () => {
     if (taskId) {
       fetchTaskDetails();
     }
-  }, [taskId, fetchTaskDetails]);
+  }, [taskId, fetchTaskDetails,isUpdatedStatus]);
 
   const handleStatusUpdate = async (newStatus: Task["status"]) => {
     if (!task) return;
@@ -84,6 +86,7 @@ const TaskDetailPage: React.FC = () => {
       });
     } finally {
       setIsUpdatingStatus(false);
+      setIsUpdatedStatus((prev)=>!prev)
     }
   };
 

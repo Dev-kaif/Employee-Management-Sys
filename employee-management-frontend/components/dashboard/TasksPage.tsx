@@ -89,7 +89,11 @@ const TasksPage = () => {
         axios.get<Task[]>(`${Backend_Url}/api/tasks`),
         axios.get<employee[]>(`${Backend_Url}/api/employees`),
       ]);
-      setTasks(tasksResponse.data);
+      // Sort tasks by createdAt in descending order (most recent first)
+      const sortedTasks = tasksResponse.data.sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      setTasks(sortedTasks);
       setEmployees(employeesResponse.data);
     } catch (error: any) {
       toast({

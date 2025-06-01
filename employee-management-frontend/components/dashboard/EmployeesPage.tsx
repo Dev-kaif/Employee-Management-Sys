@@ -10,7 +10,9 @@ import {
   Filter,
   Users,
   AlertCircle,
-} from "lucide-react"; 
+  Clock, // Import Clock for shift times
+  Calendar, // Import Calendar for shift dates
+} from "lucide-react";
 import axios from "@/lib/axios";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
@@ -22,7 +24,7 @@ import {
   DialogTrigger,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog"; 
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,22 +35,23 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/hooks/use-toast";
 import { Backend_Url } from "@/config";
-import { Employee } from "@/lib/types";
-
+import { Employee, Shift } from "@/lib/types"; // Ensure Shift type is imported
+import { Badge } from "@/components/ui/badge"; // Import Badge component
 
 const EmployeesPage = () => {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]); // State to store shifts
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // New state for delete modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<{
     id: string;
     name: string;
-  } | null>(null); 
+  } | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const [newEmployee, setNewEmployee] = useState({
@@ -58,6 +61,11 @@ const EmployeesPage = () => {
     designation: "",
     department: "",
   });
+
+  const [isViewShiftsModalOpen, setIsViewShiftsModalOpen] = useState(false);
+  const [selectedEmployeeShifts, setSelectedEmployeeShifts] = useState<Shift[]>([]);
+  const [selectedEmployeeName, setSelectedEmployeeName] = useState("");
+  const [currentLiveTime, setCurrentLiveTime] = useState(new Date()); // For live shift duration
 
   const { toast } = useToast();
 
@@ -70,38 +78,91 @@ const EmployeesPage = () => {
     "HR",
   ];
 
-  const fetchEmployees = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<Employee[]>(
-        `${Backend_Url}/api/employees`
-      );
-      setEmployees(
-        response.data.map((emp) => ({ ...emp }))
-      );
+      const [employeesResponse, shiftsResponse] = await Promise.all([
+        axios.get<Employee[]>(`${Backend_Url}/api/employees`),
+        axios.get<Shift[]>(`${Backend_Url}/api/shifts`), // Fetch shifts
+      ]);
+
+      // Sort shifts by startTime (most recent first) for display in modal
+      const sortedShifts = shiftsResponse.data.sort((a, b) => {
+        return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+      });
+
+      setEmployees(employeesResponse.data.map((emp) => ({ ...emp })));
+      setShifts(sortedShifts);
     } catch (error: any) {
       toast({
-        title: "Error fetching employees",
+        title: "Error fetching data",
         description:
-          error.response?.data?.message || "Failed to load employee data.",
+          error.response?.data?.message || "Failed to load employees or shifts.",
         variant: "destructive",
       });
       setEmployees([]);
+      setShifts([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
+    fetchData();
+    // Set up interval to update currentLiveTime every minute
+    const interval = setInterval(() => {
+      setCurrentLiveTime(new Date());
+    }, 60 * 1000); // Update every minute
+
+    return () => clearInterval(interval); // Clean up interval on unmount
   }, []);
+
+  const isEmployeeActive = (employeeId: string): boolean => {
+    const now = currentLiveTime.getTime();
+    return shifts.some((shift) => {
+      const shiftStartTime = new Date(shift.startTime).getTime();
+      const shiftEndTime = shift.endTime ? new Date(shift.endTime).getTime() : Infinity; // Ongoing if no end time
+
+      return (
+        shift.employee === employeeId &&
+        now >= shiftStartTime &&
+        now < shiftEndTime
+      );
+    });
+  };
+
+  const getShiftDuration = (shift: Shift) => {
+    if (typeof shift.totalHours === 'number' && shift.endTime) {
+      return shift.totalHours;
+    }
+    if (shift.startTime && !shift.endTime) {
+      const start = new Date(shift.startTime);
+      const diffMs = currentLiveTime.getTime() - start.getTime();
+      const hours = diffMs / (1000 * 60 * 60);
+      return hours;
+    }
+    return 0;
+  };
+
+  const formatTime = (timeString: string | Date) => {
+    const date = new Date(timeString);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   const filteredEmployees = employees.filter((employee) => {
     const employeeUsername = employee.username || "";
     const employeeEmail = employee.email || "";
     const employeeDesignation = employee.designation || "";
     const employeeDepartment = employee.department || "";
-    // const employeeStatus = employee.status || "";
 
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
 
@@ -113,11 +174,12 @@ const EmployeesPage = () => {
     const matchesDepartment =
       departmentFilter === "all" || employeeDepartment === departmentFilter;
 
-    // const matchesStatus =
-    //   statusFilter === "all" || employeeStatus === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && isEmployeeActive(employee._id)) ||
+      (statusFilter === "inactive" && !isEmployeeActive(employee._id));
 
-    // return matchesSearch && matchesDepartment && matchesStatus;
-    return matchesSearch && matchesDepartment ;
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   const handleCreateEmployee = async () => {
@@ -125,7 +187,7 @@ const EmployeesPage = () => {
     try {
       await axios.post<Employee>(`${Backend_Url}/api/employees`, newEmployee);
 
-      fetchEmployees();
+      fetchData(); // Re-fetch all data to update both employees and shifts
 
       setNewEmployee({
         username: "",
@@ -159,13 +221,13 @@ const EmployeesPage = () => {
 
   // Function to perform the actual deletion after confirmation
   const confirmDelete = async () => {
-    if (!employeeToDelete) return; // Should not happen if modal is open
+    if (!employeeToDelete) return;
 
     try {
       await axios.delete(`${Backend_Url}/api/employees/${employeeToDelete.id}`);
-      setEmployees(employees.filter((emp) => emp._id !== employeeToDelete.id));
-      setIsDeleteModalOpen(false); // Close the modal
-      setEmployeeToDelete(null); // Clear employee to delete
+      fetchData(); // Re-fetch all data to update both employees and shifts after deletion
+      setIsDeleteModalOpen(false);
+      setEmployeeToDelete(null);
 
       toast({
         title: "Employee deleted",
@@ -174,10 +236,18 @@ const EmployeesPage = () => {
     } catch (error: any) {
       toast({
         title: "Error deleting employee",
-        description: error.response?.data?.message || "Please try again later.",
+        description:
+          error.response?.data?.message || "Please try again later.",
         variant: "destructive",
       });
     }
+  };
+
+  const handleViewShifts = (employeeId: string, employeeName: string) => {
+    const employeeShifts = shifts.filter(shift => shift.employee === employeeId);
+    setSelectedEmployeeShifts(employeeShifts);
+    setSelectedEmployeeName(employeeName);
+    setIsViewShiftsModalOpen(true);
   };
 
   if (loading) {
@@ -377,6 +447,11 @@ const EmployeesPage = () => {
                   </p>
                 </div>
               </div>
+              {isEmployeeActive(employee._id) && (
+                <Badge className="bg-green-500 text-white px-3 py-1 text-xs font-medium">
+                  Active Now
+                </Badge>
+              )}
             </div>
 
             <div className="space-y-2 mb-4">
@@ -389,14 +464,14 @@ const EmployeesPage = () => {
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap"> {/* Added flex-wrap for buttons */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() =>
                   router.push(`/adminDashboard/employees/${employee._id}`)
                 }
-                className="flex-1 flex items-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2 min-w-[120px]"
               >
                 <Eye size={14} />
                 View Details
@@ -404,10 +479,19 @@ const EmployeesPage = () => {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => handleViewShifts(employee._id, employee.username)}
+                className="flex-1 flex items-center justify-center gap-2 min-w-[120px]"
+              >
+                <Clock size={14} />
+                View Shifts
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() =>
                   handleDeleteEmployee(employee._id, employee.username)
-                } // Calls the new handler
-                className="text-error border-error hover:bg-error hover:text-white"
+                }
+                className="text-error border-error hover:bg-error hover:text-white flex-shrink-0"
               >
                 <Trash2 size={14} />
               </Button>
@@ -450,6 +534,53 @@ const EmployeesPage = () => {
             <Button variant="danger" onClick={confirmDelete}>
               Delete
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Shifts Modal */}
+      <Dialog open={isViewShiftsModalOpen} onOpenChange={setIsViewShiftsModalOpen}>
+        <DialogContent className="bg-surface max-w-2xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Shifts for {selectedEmployeeName}</DialogTitle>
+            <DialogDescription>
+              Recent shifts for {selectedEmployeeName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-4 p-2 -mx-2"> {/* Added p-2 -mx-2 for internal padding but still aligning with modal */}
+            {selectedEmployeeShifts.length > 0 ? (
+              selectedEmployeeShifts.map((shift) => (
+                <div key={shift._id} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-sm text-text-secondary">
+                      <Calendar size={16} />
+                      <span>{formatDate(shift.startTime)}</span>
+                    </div>
+                    {!shift.endTime && (
+                      <Badge className="bg-green-500 text-white text-xs">Active</Badge>
+                    )}
+                  </div>
+                  <p className="text-lg font-semibold text-text mb-2">
+                    {formatTime(shift.startTime)} - {shift.endTime ? formatTime(shift.endTime) : 'Ongoing'}
+                  </p>
+                  <p className="text-sm text-text-secondary">
+                    Duration: {getShiftDuration(shift).toFixed(1)} hours
+                  </p>
+                  {shift.workSummary && (
+                    <p className="text-xs text-text-secondary mt-2 line-clamp-2">
+                      <span className="font-medium text-text">Summary:</span> {shift.workSummary}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-text-secondary">
+                <p>No shifts found for this employee.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="pt-4">
+            <Button onClick={() => setIsViewShiftsModalOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
