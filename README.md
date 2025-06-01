@@ -10,6 +10,26 @@ A full-stack web application to manage employees, tasks, and shifts with secure 
 
 ---
 
+## Try It Out
+
+You can try the Employee Management System using the following demo credentials:
+
+### Admin
+
+- **Email:** admin@gmail.com
+- **Password:** 123456789
+
+_As an admin, you can create employee accounts, assign and schedule tasks, track task and shift histories, and manage employee shifts._
+
+### Employee
+
+- **Email:** kaif@gmail.com
+- **Password:** 123456789
+
+_As an employee, you can log in to view your assigned tasks, update task statuses, start and end shifts with work summaries, and view your shift history._
+
+Feel free to explore both roles and see how the system works!
+
 ## 🚀 Features
 
 - ✨ Smooth animations using **Framer Motion**
